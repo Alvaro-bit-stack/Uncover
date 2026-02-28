@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 
+import Leaderboard from "./_components/leaderboard/Leaderboard";
+import { getMockLeaderboard } from "./_lib/leaderboard.mock";
+import type { LeaderboardPeriod } from "./_types/leaderboard";
+
 type Tab = "map" | "quests" | "rank" | "me";
 
 export default function Home() {
@@ -10,6 +14,11 @@ export default function Home() {
   const [magicActive, setMagicActive] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
+  const [leaderboardPeriod, setLeaderboardPeriod] =
+  useState<LeaderboardPeriod>("weekly");
+
+  // TEMP: until we have real auth/user data
+  const meUserId = "u3";
 
   useEffect(() => {
     const format = () => {
@@ -275,29 +284,12 @@ export default function Home() {
       )}
 
       {activeTab === "rank" && (
-        <div className="px-6 py-8">
-          <h2 className="text-lg font-bold text-white mb-4">Leaderboard</h2>
-          <div className="rounded-xl border border-quest-border bg-quest-card overflow-hidden">
-            {[
-              { rank: 1, name: "ALEX", xp: "12.4k" },
-              { rank: 2, name: "JORDAN", xp: "11.1k" },
-              { rank: 3, name: "ZARA", xp: "4.8k", highlight: true },
-              { rank: 4, name: "SAM", xp: "4.2k" },
-              { rank: 5, name: "RILEY", xp: "3.9k" },
-            ].map((row) => (
-              <div
-                key={row.rank}
-                className={`flex items-center justify-between px-4 py-3 border-b border-quest-border last:border-0 ${
-                  row.highlight ? "bg-quest-glow/10" : ""
-                }`}
-              >
-                <span className="text-quest-muted w-8">#{row.rank}</span>
-                <span className="font-medium text-white">{row.name}</span>
-                <span className="text-quest-accent font-bold">{row.xp} XP</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Leaderboard
+          data={getMockLeaderboard(leaderboardPeriod)}
+          meUserId={meUserId}
+          period={leaderboardPeriod}
+          onChangePeriod={setLeaderboardPeriod}
+        />
       )}
 
       {/* Bottom nav */}
