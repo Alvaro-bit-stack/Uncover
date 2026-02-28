@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import mapboxgl, { Map as MapboxMap } from "mapbox-gl";
 
 import Leaderboard from "./_components/leaderboard/Leaderboard";
 import { getMockLeaderboard } from "./_lib/leaderboard.mock";
@@ -13,6 +14,7 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [magicActive, setMagicActive] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
+  const [mapFilter, setMapFilter] = useState<"tiles" | "quests">("tiles");
   const menuRef = useRef<HTMLDivElement>(null);
   const [leaderboardPeriod, setLeaderboardPeriod] =
   useState<LeaderboardPeriod>("weekly");
@@ -95,6 +97,7 @@ export default function Home() {
                 onClick={() => {
                   setMenuOpen(false);
                   /* TODO: navigate to settings */
+                  
                 }}
                 className="w-full px-4 py-2 text-left text-sm text-white hover:bg-white/5 transition-colors"
               >
@@ -243,15 +246,64 @@ export default function Home() {
       )}
 
       {activeTab === "map" && (
-        <div className="px-6 py-8 flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <div className="size-20 rounded-2xl border border-quest-border bg-quest-card flex items-center justify-center mb-4">
-            <MapNavIcon className="text-quest-muted" />
+        <section className="px-6 pt-4 pb-28 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-white">Campus map</h2>
+              <p className="text-quest-muted text-xs">
+                Explore campus, discover tiles, and track your walks.
+              </p>
+            </div>
+            <div className="size-10 rounded-xl border border-quest-border bg-quest-card flex items-center justify-center">
+              <MapNavIcon className="text-quest-muted" />
+            </div>
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">Map</h2>
-          <p className="text-quest-muted text-sm max-w-xs">
-            Explore campus and discover tiles. Map view coming soon.
-          </p>
-        </div>
+
+          {/* Filter pills */}
+          <div className="flex gap-2">
+            {(["tiles", "quests"] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setMapFilter(f)}
+                className={`px-4 py-1 rounded-full text-xs font-medium transition-colors border ${
+                  mapFilter === f
+                    ? "bg-quest-glow/20 text-quest-glow border-quest-glow/40"
+                    : "text-quest-muted border-quest-border hover:text-white"
+                }`}
+              >
+                {f.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
+          <MapView mode={mapFilter} />
+
+          {/* Active quests on map */}
+          <div>
+            <p className="text-[10px] text-quest-muted uppercase tracking-wide mb-2">
+              Active on map
+            </p>
+            <div className="space-y-2">
+              {[
+                { label: "Walk 5 km this week", status: "3.2 / 5 km", color: "#f97316" },
+                { label: "Find 3 new tiles", status: "2 / 3", color: "#fbbf24" },
+              ].map((q) => (
+                <div
+                  key={q.label}
+                  className="flex items-center gap-3 rounded-xl border border-quest-border bg-quest-card px-4 py-2.5"
+                >
+                  <div
+                    className="size-2.5 rounded-full shrink-0"
+                    style={{ background: q.color }}
+                  />
+                  <span className="text-sm text-white flex-1">{q.label}</span>
+                  <span className="text-xs text-quest-muted">{q.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {activeTab === "quests" && (
@@ -322,6 +374,187 @@ export default function Home() {
           onClick={() => setActiveTab("me")}
         />
       </nav>
+    </div>
+  );
+}
+
+const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+
+// Campus tile grid — Stevens Institute, Hoboken NJ
+const CAMPUS = { minLng: -74.0269, maxLng: -74.0219, minLat: 40.7418, maxLat: 40.7478, cols: 10, rows: 12 };
+const TOTAL_TILES = CAMPUS.cols * CAMPUS.rows; // 120
+
+// 38 tiles already discovered by the player
+const DISCOVERED = new Set([
+  12, 13, 14, 15,
+  22, 23, 24, 25, 26,
+  32, 33, 34, 35, 36,
+  42, 43, 44, 45, 46,
+  52, 53, 54, 55, 56,
+  62, 63, 64, 65, 66,
+  72, 73, 74, 75,
+  82, 83, 84,
+  93, 103,
+]);
+
+function buildTileGeoJSON() {
+  const { minLng, maxLng, minLat, maxLat, cols, rows } = CAMPUS;
+  const dLng = (maxLng - minLng) / cols;
+  const dLat = (maxLat - minLat) / rows;
+  const features = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const lng0 = minLng + c * dLng, lng1 = lng0 + dLng;
+      const lat0 = minLat + r * dLat, lat1 = lat0 + dLat;
+      features.push({
+        type: "Feature" as const,
+        properties: { discovered: DISCOVERED.has(r * cols + c) },
+        geometry: {
+          type: "Polygon" as const,
+          coordinates: [[[lng0, lat0], [lng1, lat0], [lng1, lat1], [lng0, lat1], [lng0, lat0]]],
+        },
+      });
+    }
+  }
+  return { type: "FeatureCollection" as const, features };
+}
+
+const QUEST_PINS = [
+  { lng: -74.0258, lat: 40.7460, label: "Find 3 new tiles", color: "#fbbf24" },
+  { lng: -74.0232, lat: 40.7438, label: "Walk 5 km this week", color: "#f97316" },
+];
+
+function MapView({ mode }: { mode: "tiles" | "quests" }) {
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<MapboxMap | null>(null);
+  const [tokenMissing, setTokenMissing] = useState(false);
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    if (!MAPBOX_ACCESS_TOKEN) {
+      setTokenMissing(true);
+      return;
+    }
+
+    mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: "mapbox://styles/mapbox/dark-v11",
+      center: [-74.0244, 40.7448],
+      zoom: 16,
+    });
+
+    map.addControl(new mapboxgl.NavigationControl(), "top-right");
+    map.addControl(
+      new mapboxgl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: true,
+        showUserHeading: true,
+      }),
+      "top-right"
+    );
+
+    map.on("load", () => {
+      // Tile grid
+      map.addSource("campus-tiles", { type: "geojson", data: buildTileGeoJSON() });
+      map.addLayer({
+        id: "tiles-fill",
+        type: "fill",
+        source: "campus-tiles",
+        paint: {
+          "fill-color": ["case", ["get", "discovered"], "#f97316", "#94a3b8"],
+          "fill-opacity": ["case", ["get", "discovered"], 0.22, 0.06],
+        },
+      });
+      map.addLayer({
+        id: "tiles-outline",
+        type: "line",
+        source: "campus-tiles",
+        paint: {
+          "line-color": ["case", ["get", "discovered"], "#fbbf24", "#94a3b8"],
+          "line-opacity": ["case", ["get", "discovered"], 0.5, 0.12],
+          "line-width": 1,
+        },
+      });
+
+      // Quest markers
+      QUEST_PINS.forEach(({ lng, lat, label, color }) => {
+        const el = document.createElement("div");
+        el.style.cssText = `width:14px;height:14px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 10px ${color};cursor:pointer;`;
+        new mapboxgl.Marker({ element: el })
+          .setLngLat([lng, lat])
+          .setPopup(new mapboxgl.Popup({ offset: 12 }).setText(label))
+          .addTo(map);
+      });
+    });
+
+    mapRef.current = map;
+    return () => { map.remove(); mapRef.current = null; };
+  }, []);
+
+  // Toggle tile / quest layer visibility when mode changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    const tileVis = mode === "tiles" ? "visible" : "none";
+    map.setLayoutProperty("tiles-fill", "visibility", tileVis);
+    map.setLayoutProperty("tiles-outline", "visibility", tileVis);
+  }, [mode]);
+
+  const pct = ((DISCOVERED.size / TOTAL_TILES) * 100).toFixed(1);
+
+  return (
+    <div className="rounded-2xl border border-quest-border bg-quest-card overflow-hidden">
+      <div className="relative h-[60vh]">
+        <div ref={mapContainerRef} className="absolute inset-0" />
+
+        {/* Legend */}
+        <div className="pointer-events-none absolute bottom-3 left-3 rounded-xl bg-black/60 backdrop-blur-sm px-3 py-2 flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <div className="size-3 rounded-sm bg-quest-accent" />
+            <span className="text-[10px] text-white">Discovered</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="size-3 rounded-sm bg-quest-muted opacity-40" />
+            <span className="text-[10px] text-quest-muted">Unexplored</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="size-2.5 rounded-full border border-white" style={{ background: "#fbbf24" }} />
+            <span className="text-[10px] text-quest-muted">Quest</span>
+          </div>
+        </div>
+
+        {/* Branding */}
+        <div className="pointer-events-none absolute top-3 left-3">
+          <div className="rounded-full bg-black/50 px-3 py-1 text-[10px] text-quest-muted backdrop-blur">
+            Map powered by Mapbox
+          </div>
+        </div>
+      </div>
+
+      {/* Stats bar */}
+      <div className="flex items-center gap-3 px-4 py-3 border-t border-quest-border">
+        <div className="size-2 rounded-full bg-quest-accent shrink-0" />
+        <span className="text-xs text-white font-medium shrink-0">
+          {DISCOVERED.size} / {TOTAL_TILES} tiles
+        </span>
+        <div className="flex-1 h-1.5 rounded-full bg-quest-dark overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-quest-accent to-quest-glow"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <span className="text-xs text-quest-muted shrink-0">{pct}%</span>
+      </div>
+
+      {tokenMissing && (
+        <p className="px-4 py-3 text-xs text-quest-muted border-t border-quest-border">
+          Set <span className="font-mono">NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN</span>{" "}
+          in <span className="font-mono">.env.local</span> to load the interactive map.
+        </p>
+      )}
     </div>
   );
 }
