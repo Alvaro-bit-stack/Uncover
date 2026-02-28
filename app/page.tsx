@@ -424,20 +424,19 @@ const QUEST_PINS = [
   { lng: -74.0232, lat: 40.7438, label: "Walk 5 km this week", color: "#f97316" },
 ];
 
+// OpenStreetMap embed bbox for campus (left, bottom, right, top)
+const OSM_BBOX = `${CAMPUS.minLng},${CAMPUS.minLat},${CAMPUS.maxLng},${CAMPUS.maxLat}`;
+const OSM_EMBED_URL = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(OSM_BBOX)}&layer=mapnik&marker=40.7448%2C-74.0244`;
+
 function MapView({ mode }: { mode: "tiles" | "quests" }) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
-  const [tokenMissing, setTokenMissing] = useState(false);
+  const useMapbox = Boolean(MAPBOX_ACCESS_TOKEN);
 
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (!useMapbox || !mapContainerRef.current || mapRef.current) return;
 
-    if (!MAPBOX_ACCESS_TOKEN) {
-      setTokenMissing(true);
-      return;
-    }
-
-    mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+    mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN!;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -492,7 +491,7 @@ function MapView({ mode }: { mode: "tiles" | "quests" }) {
 
     mapRef.current = map;
     return () => { map.remove(); mapRef.current = null; };
-  }, []);
+  }, [useMapbox]);
 
   // Toggle tile / quest layer visibility when mode changes
   useEffect(() => {
@@ -508,28 +507,41 @@ function MapView({ mode }: { mode: "tiles" | "quests" }) {
   return (
     <div className="rounded-2xl border border-quest-border bg-quest-card overflow-hidden">
       <div className="relative h-[60vh]">
-        <div ref={mapContainerRef} className="absolute inset-0" />
+        {useMapbox ? (
+          <div ref={mapContainerRef} className="absolute inset-0" />
+        ) : (
+          <iframe
+            title="Campus map (OpenStreetMap)"
+            src={OSM_EMBED_URL}
+            className="absolute inset-0 w-full h-full border-0"
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        )}
 
-        {/* Legend */}
-        <div className="pointer-events-none absolute bottom-3 left-3 rounded-xl bg-black/60 backdrop-blur-sm px-3 py-2 flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <div className="size-3 rounded-sm bg-quest-accent" />
-            <span className="text-[10px] text-white">Discovered</span>
+        {/* Legend — only for Mapbox (tiles/quests overlay) */}
+        {useMapbox && (
+          <div className="pointer-events-none absolute bottom-3 left-3 rounded-xl bg-black/60 backdrop-blur-sm px-3 py-2 flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <div className="size-3 rounded-sm bg-quest-accent" />
+              <span className="text-[10px] text-white">Discovered</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="size-3 rounded-sm bg-quest-muted opacity-40" />
+              <span className="text-[10px] text-quest-muted">Unexplored</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="size-2.5 rounded-full border border-white" style={{ background: "#fbbf24" }} />
+              <span className="text-[10px] text-quest-muted">Quest</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="size-3 rounded-sm bg-quest-muted opacity-40" />
-            <span className="text-[10px] text-quest-muted">Unexplored</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="size-2.5 rounded-full border border-white" style={{ background: "#fbbf24" }} />
-            <span className="text-[10px] text-quest-muted">Quest</span>
-          </div>
-        </div>
+        )}
 
         {/* Branding */}
         <div className="pointer-events-none absolute top-3 left-3">
           <div className="rounded-full bg-black/50 px-3 py-1 text-[10px] text-quest-muted backdrop-blur">
-            Map powered by Mapbox
+            {useMapbox ? "Map powered by Mapbox" : "Map © OpenStreetMap"}
           </div>
         </div>
       </div>
@@ -548,13 +560,6 @@ function MapView({ mode }: { mode: "tiles" | "quests" }) {
         </div>
         <span className="text-xs text-quest-muted shrink-0">{pct}%</span>
       </div>
-
-      {tokenMissing && (
-        <p className="px-4 py-3 text-xs text-quest-muted border-t border-quest-border">
-          Set <span className="font-mono">NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN</span>{" "}
-          in <span className="font-mono">.env.local</span> to load the interactive map.
-        </p>
-      )}
     </div>
   );
 }
