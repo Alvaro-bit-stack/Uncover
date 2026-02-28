@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import mapboxgl, { Map as MapboxMap } from "mapbox-gl";
+import type { User } from "@supabase/supabase-js";
 
 import Leaderboard from "./_components/leaderboard/Leaderboard";
 import type { LeaderboardPeriod, LeaderboardResponse } from "./_types/leaderboard";
+import { createClient } from "./_lib/supabase/client";
 
 type Tab = "map" | "quests" | "rank" | "me";
 
@@ -17,14 +20,30 @@ export default function Home() {
   const menuRef = useRef<HTMLDivElement>(null);
   const [leaderboardPeriod, setLeaderboardPeriod] =
   useState<LeaderboardPeriod>("weekly");
+  const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
 
   const [leaderboardData, setLeaderboardData] =
     useState<LeaderboardResponse | null>(null);
-
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
 
-  // TEMP until real auth
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+  }, []);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
+  const displayName =
+    (user?.user_metadata?.display_name as string | undefined)?.toUpperCase() ??
+    "EXPLORER";
+
+  // TEMP: matches mock leaderboard until real data is wired up
   const meUserId = "u3";
 
   useEffect(() => {
@@ -147,7 +166,7 @@ export default function Home() {
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
-                  /* TODO: sign out */
+                  handleSignOut();
                 }}
                 className="w-full px-4 py-2 text-left text-sm text-quest-muted hover:bg-white/5 hover:text-white transition-colors border-t border-quest-border mt-1 pt-2"
               >
@@ -189,7 +208,7 @@ export default function Home() {
                 ))}
               </div>
               <span className="text-2xl font-bold tracking-wider text-quest-glow">
-                ZARA
+                {displayName}
               </span>
               <span className="flex items-center gap-1 text-sm text-quest-muted">
                 <StarIcon className="size-3" />
