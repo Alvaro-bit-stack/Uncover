@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import mapboxgl, { Map as MapboxMap } from "mapbox-gl";
 
 import Leaderboard from "./_components/leaderboard/Leaderboard";
-import { getMockLeaderboard } from "./_lib/leaderboard.mock";
-import type { LeaderboardPeriod } from "./_types/leaderboard";
+import type { LeaderboardPeriod, LeaderboardResponse } from "./_types/leaderboard";
 
 type Tab = "map" | "quests" | "rank" | "me";
 
@@ -19,7 +18,13 @@ export default function Home() {
   const [leaderboardPeriod, setLeaderboardPeriod] =
   useState<LeaderboardPeriod>("weekly");
 
-  // TEMP: until we have real auth/user data
+  const [leaderboardData, setLeaderboardData] =
+    useState<LeaderboardResponse | null>(null);
+
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+
+  // TEMP until real auth
   const meUserId = "u3";
 
   useEffect(() => {
@@ -49,6 +54,31 @@ export default function Home() {
     }
     return () => document.removeEventListener("click", handleClickOutside);
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (activeTab !== "rank") return;
+
+    const controller = new AbortController();
+
+    setLeaderboardLoading(true);
+    setLeaderboardError(null);
+
+    fetch(`/api/leaderboard?period=${leaderboardPeriod}`, {
+      signal: controller.signal,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Leaderboard fetch failed (HTTP ${res.status})`);
+        return res.json() as Promise<LeaderboardResponse>;
+      })
+      .then((json) => setLeaderboardData(json))
+      .catch((err) => {
+        if (err?.name === "AbortError") return;
+        setLeaderboardError(err?.message ?? String(err));
+      })
+      .finally(() => setLeaderboardLoading(false));
+
+    return () => controller.abort();
+  }, [activeTab, leaderboardPeriod]);
 
   const handleAvatarTap = () => {
     setMagicActive(true);
@@ -336,13 +366,29 @@ export default function Home() {
       )}
 
       {activeTab === "rank" && (
-        <Leaderboard
-          data={getMockLeaderboard(leaderboardPeriod)}
-          meUserId={meUserId}
-          period={leaderboardPeriod}
-          onChangePeriod={setLeaderboardPeriod}
-        />
-      )}
+      <>
+        {leaderboardLoading && (
+          <div className="px-6 py-8 text-quest-muted text-sm">
+            Loading leaderboard…
+          </div>
+        )}
+
+        {leaderboardError && (
+          <div className="px-6 py-8 text-red-300 text-sm">
+            Error: {leaderboardError}
+          </div>
+        )}
+
+        {leaderboardData && (
+          <Leaderboard
+            data={leaderboardData}
+            meUserId={meUserId}
+            period={leaderboardPeriod}
+            onChangePeriod={setLeaderboardPeriod}
+          />
+        )}
+      </>
+    )}
 
       {/* Bottom nav */}
       <nav

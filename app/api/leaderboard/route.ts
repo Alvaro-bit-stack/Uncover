@@ -11,5 +11,6 @@ export function GET(req: Request) {
       ? period
       : "weekly";
 
-  return NextResponse.json(getMockLeaderboard(safe));
+  const data = getMockLeaderboard(safe);
+  return NextResponse.json(data);
 }
