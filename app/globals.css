@@ -1,26 +1,49 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  --color-quest-dark: #1a1520;
+  --color-quest-card: #252030;
+  --color-quest-border: rgba(255, 255, 255, 0.12);
+  --color-quest-accent: #f97316;
+  --color-quest-glow: #fbbf24;
+  --color-quest-muted: #94a3b8;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-quest-dark);
+  color: #fff;
+}
+
+@keyframes magic-burst {
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes magic-burst-delay {
+  0% { opacity: 0.6; transform: scale(0); }
+  50% { opacity: 0.4; transform: scale(1.2); }
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-magic-burst {
+  animation: magic-burst 1.2s ease-out forwards;
+}
+
+.animate-magic-burst-delay {
+  animation: magic-burst-delay 1.2s ease-out 0.15s forwards;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.5s ease-out forwards;
 }
