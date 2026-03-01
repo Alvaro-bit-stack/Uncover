@@ -69,6 +69,15 @@ body {
   z-index: 0;
 }
 
+.wm-fog-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
 /* Dark-styled Leaflet tiles */
 .wm-root .leaflet-tile {
   filter: saturate(0.55) brightness(0.75) contrast(1.1) hue-rotate(200deg);
@@ -77,59 +86,6 @@ body {
 .wm-root .leaflet-control-zoom { display: none; }
 .wm-root .leaflet-div-icon { background: none !important; border: none !important; }
 .wm-root .leaflet-interactive { outline: none; }
-
-/* ─── LOADING ─── */
-.wm-loading {
-  position: absolute;
-  inset: 0;
-  z-index: 9999;
-  background: #0d0d14;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  transition: opacity 0.6s ease;
-}
-.wm-loading.hidden { opacity: 0; pointer-events: none; }
-
-.wm-load-logo { font-size: 48px; animation: wm-pulse 1.4s ease-in-out infinite; }
-@keyframes wm-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
-
-.wm-load-title {
-  font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #FF4D6D, #FFB703);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.wm-load-sub { font-size: 13px; color: rgba(240,240,248,0.4); font-family: monospace; }
-
-.wm-load-bar-wrap {
-  width: 180px; height: 3px; background: rgba(255,255,255,0.06);
-  border-radius: 4px; overflow: hidden;
-}
-.wm-load-bar {
-  height: 100%; width: 0%;
-  background: linear-gradient(90deg, #FF4D6D, #FFB703);
-  border-radius: 4px; transition: width 0.4s ease;
-}
-
-.wm-load-status {
-  font-size: 11px; color: rgba(240,240,248,0.4); font-family: monospace;
-  max-width: 260px; text-align: center; line-height: 1.6;
-}
-
-.wm-permission-btn {
-  margin-top: 8px; padding: 14px 28px;
-  background: linear-gradient(135deg, #FF4D6D, #c9184a);
-  border: none; border-radius: 24px; color: #fff;
-  font-family: 'Syne', system-ui, sans-serif;
-  font-size: 15px; font-weight: 700; cursor: pointer;
-  letter-spacing: 0.3px;
-  box-shadow: 0 8px 30px rgba(255,77,109,0.35);
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.wm-permission-btn:active { transform: scale(0.96); box-shadow: 0 4px 16px rgba(255,77,109,0.35); }
 
 /* ─── AVATAR MARKER ─── */
 .wm-av-wrap {
@@ -242,7 +198,7 @@ body {
   background: linear-gradient(to top, rgba(13,13,20,0.95) 0%, transparent 100%);
 }
 .wm-stats-row {
-  display: flex; gap: 10px; justify-content: center; margin-bottom: 12px;
+  display: flex; gap: 10px; justify-content: center; margin-bottom: 0;
 }
 .wm-stat-chip {
   background: rgba(13,13,20,0.85);
@@ -273,22 +229,6 @@ body {
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-
-/* GPS accuracy pills */
-.wm-gps-row {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-.wm-gps-label {
-  font-size: 10px; font-family: monospace; color: rgba(240,240,248,0.4); letter-spacing: 0.5px;
-}
-.wm-accuracy-pills { display: flex; gap: 3px; }
-.wm-acc-pill {
-  width: 20px; height: 5px; border-radius: 3px;
-  background: rgba(255,255,255,0.06); transition: background 0.4s;
-}
-.wm-acc-pill.active { background: #FF4D6D; }
-.wm-acc-pill.active.good { background: #06d6a0; }
-.wm-acc-pill.active.ok { background: #FFB703; }
 
 /* ─── COMPASS ─── */
 .wm-compass-wrap {
@@ -343,46 +283,32 @@ body {
 }
 .wm-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ─── LOAD BUTTONS ─── */
-.wm-load-buttons {
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
+/* ─── ARROW BUTTONS ─── */
+.wm-arrows {
+  position: absolute; left: 20px; bottom: 140px; z-index: 800;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
-.wm-sim-btn {
-  padding: 12px 24px;
-  background: rgba(255,255,255,0.06);
+.wm-arrow-mid {
+  display: flex; gap: 6px;
+}
+.wm-arrow-btn {
+  width: 52px; height: 52px; border-radius: 16px;
+  background: rgba(13,13,20,0.88); backdrop-filter: blur(16px);
   border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 24px; color: rgba(240,240,248,0.7);
-  font-family: 'Syne', system-ui, sans-serif;
-  font-size: 14px; font-weight: 600; cursor: pointer;
-  transition: transform 0.15s, background 0.15s;
-}
-.wm-sim-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-.wm-sim-btn:active { transform: scale(0.96); }
-
-/* ─── D-PAD ─── */
-.wm-dpad {
-  position: absolute; left: 20px; bottom: 230px; z-index: 800;
-  display: grid;
-  grid-template-areas: ". up ." "left . right" ". down .";
-  grid-template-columns: 44px 44px 44px;
-  grid-template-rows: 44px 44px 44px;
-  gap: 4px;
-}
-.wm-dpad-btn {
-  width: 44px; height: 44px; border-radius: 12px;
-  background: rgba(13,13,20,0.85); backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.12);
-  color: #f0f0f8; font-size: 16px;
+  color: #f0f0f8;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   transition: transform 0.1s, background 0.1s;
+  -webkit-tap-highlight-color: transparent;
 }
-.wm-dpad-btn:active { transform: scale(0.9); background: rgba(255,77,109,0.25); }
-.wm-dpad-up { grid-area: up; }
-.wm-dpad-down { grid-area: down; }
-.wm-dpad-left { grid-area: left; }
-.wm-dpad-right { grid-area: right; }
+.wm-arrow-btn svg {
+  width: 22px; height: 22px;
+}
+.wm-arrow-btn:active {
+  transform: scale(0.88);
+  background: rgba(255,77,109,0.3);
+}
 
 /* ─── TILES COUNTER ─── */
 .wm-tiles-counter {
