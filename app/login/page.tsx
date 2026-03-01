@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../_lib/supabase/client";
+import TrueFocus from "../_components/reactbits/TrueFocus";
 
 type Mode = "login" | "signup";
 
@@ -65,10 +66,17 @@ export default function LoginPage() {
         <h1 className="text-3xl font-bold text-quest-glow tracking-[0.3em] mb-3">
           UNCOVER
         </h1>
+
         <div className="w-8 h-px bg-quest-glow/40 mx-auto mb-3" />
-        <p className="text-quest-muted text-xs tracking-widest uppercase">
-          Explore your campus town
-        </p>
+       <TrueFocus
+          sentence="Explore your campus town"
+          manualMode={false}
+          blurAmount={5}
+          borderColor="#5227FF"
+          animationDuration={0.5}
+          pauseBetweenAnimations={1}
+          wordClassName="text-xs tracking-widest uppercase text-quest-muted font-normal"
+        />
       </div>
 
       {/* Card */}
