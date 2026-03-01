@@ -65,12 +65,12 @@ export default function LoginPage() {
         <div className="flex items-center justify-center gap-2 mb-3">
           <StarIcon className="size-5 text-quest-glow" />
           <h1 className="text-2xl font-bold text-quest-glow tracking-widest">
-            CAMPUSQUEST
+            UNCOVER
           </h1>
           <StarIcon className="size-5 text-quest-glow" />
         </div>
         <p className="text-quest-muted text-sm">
-          Explore your campus. Claim your territory.
+          Explore your campus town. Claim your territory.
         </p>
       </div>
 
@@ -173,7 +173,7 @@ export default function LoginPage() {
       </div>
 
       <p className="mt-8 text-[10px] text-quest-muted text-center">
-        Your campus adventure awaits.
+        Your campus town adventure awaits.
       </p>
     </div>
   );

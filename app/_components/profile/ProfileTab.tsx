@@ -45,9 +45,27 @@ interface ProfileTabProps {
 export default function ProfileTab({ displayName, magicActive, onAvatarTap }: ProfileTabProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [stats, setStats] = useState({ km: "0.0", tiles: 0, spots: 0, days: 0 });
 
   useEffect(() => {
     try { setAvatarUrl(localStorage.getItem(AVATAR_KEY)); } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("walkmap-state");
+      const state = raw ? JSON.parse(raw) : null;
+      const km = state?.totalDist ? (state.totalDist / 1000).toFixed(1) : "0.0";
+      const tiles = state?.exploredPoints ? (state.exploredPoints as unknown[]).length : 0;
+
+      const achRaw = localStorage.getItem("walkmap-achievements");
+      const spots = achRaw ? (JSON.parse(achRaw) as unknown[]).length : 0;
+
+      const daysRaw = localStorage.getItem("walkmap-days");
+      const days = daysRaw ? (JSON.parse(daysRaw) as unknown[]).length : 0;
+
+      setStats({ km, tiles, spots, days });
+    } catch {}
   }, []);
 
   function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -122,10 +140,10 @@ export default function ProfileTab({ displayName, magicActive, onAvatarTap }: Pr
       {/* Stats grid */}
       <section className="grid grid-cols-2 gap-3 px-6 pb-8">
         {[
-          { label: "KM WALKED", value: "42.8", unit: "km" },
-          { label: "TILES FOUND", value: "38", unit: "/120" },
-          { label: "SPOTS CLAIMED", value: "2", unit: "spots" },
-          { label: "DAYS ACTIVE", value: "18", unit: "days" },
+          { label: "KM WALKED", value: stats.km, unit: "km" },
+          { label: "TILES FOUND", value: String(stats.tiles), unit: "/120" },
+          { label: "SPOTS CLAIMED", value: String(stats.spots), unit: "spots" },
+          { label: "DAYS ACTIVE", value: String(stats.days), unit: "days" },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-quest-border bg-quest-card p-4">
             <p className="text-xs text-quest-muted uppercase tracking-wide mb-1">{stat.label}</p>
