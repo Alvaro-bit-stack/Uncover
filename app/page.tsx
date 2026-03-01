@@ -366,9 +366,9 @@ export default function Home() {
           </div>
 
           {/* Monthly Tournament Registration */}
-          <div className="rounded-2xl border border-quest-glow/40 bg-quest-card overflow-hidden">
+          <div className="rounded-2xl border border-quest-border overflow-hidden">
             {/* Header banner */}
-            <div className="bg-quest-glow/10 px-5 pt-5 pb-4 border-b border-quest-border">
+            <div className="bg-quest-card px-5 pt-5 pb-4 border-b border-quest-border">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-bold text-white tracking-wide text-base">
                   MONTHLY TOURNAMENT
@@ -401,12 +401,9 @@ export default function Home() {
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-quest-glow text-xs">✦</span>
-                  Top 3 earn in-app badges &amp; prize pool
+                  Top 1 earns prize pool
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-quest-glow text-xs">✦</span>
-                  One-time fixed entry fee — no hidden costs
-                </li>
+             
               </ul>
 
               {/* Register button */}
