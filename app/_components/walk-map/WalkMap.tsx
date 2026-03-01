@@ -463,51 +463,27 @@ export default function WalkMap() {
       saveAchievements(achievedRef.current);
     }
 
-    // Street-corner waypoints zigzagging through Stevens campus roads
+    // Serpentine waypoints — each row sweeps one direction, then hops
+    // north and sweeps back. No north-south backtracking.
     const waypoints: [number, number][] = [
-      // Start: 6th St & Hudson St (SW corner)
-      [40.7431, -74.0262],
-      // East on 6th St
-      [40.7431, -74.0248],
-      [40.7431, -74.0237],
-      [40.7431, -74.0227],
-      // North on River Terrace
-      [40.7437, -74.0227],
-      // West on campus path
-      [40.7437, -74.0237],
-      [40.7437, -74.0248],
-      // West to Hudson St
-      [40.7437, -74.0262],
-      // North on Hudson St
-      [40.7443, -74.0262],
-      // East through mid-campus
-      [40.7443, -74.0248],
-      [40.7443, -74.0237],
-      [40.7443, -74.0227],
-      // North on east side
-      [40.7449, -74.0227],
-      // West on 7th St
-      [40.7449, -74.0237],
-      [40.7449, -74.0248],
+      // Row 1 (south): west → east
+      [40.7431, -74.0262], [40.7431, -74.0245], [40.7431, -74.0227],
+      // Hop north
+      [40.7440, -74.0227],
+      // Row 2: east → west
+      [40.7440, -74.0245], [40.7440, -74.0262],
+      // Hop north
       [40.7449, -74.0262],
-      // North on Hudson St
-      [40.7455, -74.0262],
-      // East through upper campus
-      [40.7455, -74.0248],
-      [40.7455, -74.0237],
-      [40.7455, -74.0227],
-      // North on east side
-      [40.7461, -74.0227],
-      // West on 8th St
-      [40.7461, -74.0237],
-      [40.7461, -74.0248],
-      [40.7461, -74.0262],
-      // North to top edge
+      // Row 3: west → east
+      [40.7449, -74.0245], [40.7449, -74.0227],
+      // Hop north
+      [40.7458, -74.0227],
+      // Row 4: east → west
+      [40.7458, -74.0245], [40.7458, -74.0262],
+      // Hop north
       [40.7467, -74.0262],
-      // East across top
-      [40.7467, -74.0248],
-      [40.7467, -74.0237],
-      [40.7467, -74.0227],
+      // Row 5 (north): west → east
+      [40.7467, -74.0245], [40.7467, -74.0227],
     ];
 
     showToast("\u{1F3AC} Building route...");
@@ -516,15 +492,15 @@ export default function WalkMap() {
     const isExplored = (lat: number, lng: number) =>
       explored.some((ep) => haversine(ep.lat, ep.lng, lat, lng) < 15);
 
-    // Filter to only waypoints not yet explored
     const needed = waypoints.filter(([lat, lng]) => !isExplored(lat, lng));
     if (needed.length === 0) {
+      // Re-check achievements since we deleted "stevens" at the top
+      checkZoneAchievements();
       showToast("\u2705 Campus already fully explored!");
       movingRef.current = false;
       return;
     }
 
-    // Route from current position to first needed waypoint, then through the rest
     const cur = simPosRef.current ?? { lat: needed[0][0], lng: needed[0][1] };
     const route0 = await fetchRoute(cur.lat, cur.lng, needed[0][0], needed[0][1]);
     const fullPath: [number, number][] = route0 && route0.length > 1
@@ -548,12 +524,21 @@ export default function WalkMap() {
       }
     }
 
+    // --- Visited-cell tracker: skip already-walked areas ---
+    const CELL = 0.00012; // ~13 m grid
+    const cellKey = (lat: number, lng: number) =>
+      `${Math.round(lat / CELL)},${Math.round(lng / CELL)}`;
+
+    const walkedCells = new Set<string>();
+
+    // Pre-seed with points the user already explored
+    for (const ep of explored) walkedCells.add(cellKey(ep.lat, ep.lng));
+
     const startPt = fullPath[0];
     simPosRef.current = { lat: startPt[0], lng: startPt[1] };
     markerRef.current?.setLatLng(startPt);
     lastPosRef.current = { lat: startPt[0], lng: startPt[1] };
 
-    // Zoom out to show entire campus, camera stays static during demo
     if (mapRef.current) {
       mapRef.current.flyTo([40.7449, -74.0245], 16, { duration: 1 });
     }
@@ -569,7 +554,16 @@ export default function WalkMap() {
       if (!body.classList.contains("has-img")) body.textContent = "\u{1F6B6}";
     }
 
+    const hadStevens = achievedRef.current.has("stevens");
+
     function tick() {
+      // Fast-forward past cells we already walked
+      while (i < fullPath.length) {
+        const ck = cellKey(fullPath[i][0], fullPath[i][1]);
+        if (!walkedCells.has(ck)) break;
+        i++;
+      }
+
       if (i >= fullPath.length) {
         if (body) {
           body.classList.remove("walking");
@@ -577,9 +571,26 @@ export default function WalkMap() {
         }
         movingRef.current = false;
         isFollowingRef.current = savedFollow;
+
+        // Final achievement check — catches cases where no *new* explored
+        // points were added (all already existed) so the per-point check
+        // inside addExploredPoint never ran.
+        checkZoneAchievements();
+
+        if (!hadStevens && achievedRef.current.has("stevens")) {
+          // Achievement was just earned during this walk — banner is
+          // already showing from checkZoneAchievements, extend its
+          // display time so the user sees it after the walk ends.
+          if (achievementTimerRef.current) clearTimeout(achievementTimerRef.current);
+          achievementTimerRef.current = setTimeout(() => setAchievement(null), 8000);
+        } else if (!achievedRef.current.has("stevens")) {
+          showToast("\u{1F3C3} Demo complete! Keep exploring to discover Stevens.");
+        }
         return;
       }
+
       const [lat, lng] = fullPath[i];
+      walkedCells.add(cellKey(lat, lng));
       simPosRef.current = { lat, lng };
       moveMarkerTo(lat, lng);
       i++;
