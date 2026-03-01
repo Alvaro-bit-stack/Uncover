@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import mapboxgl, { Map as MapboxMap } from "mapbox-gl";
 import type { User } from "@supabase/supabase-js";
@@ -8,6 +8,8 @@ import type { User } from "@supabase/supabase-js";
 import Leaderboard from "./_components/leaderboard/Leaderboard";
 import type { LeaderboardPeriod, LeaderboardResponse } from "./_types/leaderboard";
 import { createClient } from "./_lib/supabase/client";
+
+const WalkMap = lazy(() => import("./_components/walk-map/WalkMap"));
 
 type Tab = "map" | "quests" | "rank" | "me";
 
@@ -295,64 +297,15 @@ export default function Home() {
       )}
 
       {activeTab === "map" && (
-        <section className="px-6 pt-4 pb-28 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-white">Campus map</h2>
-              <p className="text-quest-muted text-xs">
-                Explore campus, discover tiles, and track your walks.
-              </p>
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center h-screen text-quest-muted text-sm">
+              Loading map…
             </div>
-            <div className="size-10 rounded-xl border border-quest-border bg-quest-card flex items-center justify-center">
-              <MapNavIcon className="text-quest-muted" />
-            </div>
-          </div>
-
-          {/* Filter pills */}
-          <div className="flex gap-2">
-            {(["tiles", "quests"] as const).map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setMapFilter(f)}
-                className={`px-4 py-1 rounded-full text-xs font-medium transition-colors border ${
-                  mapFilter === f
-                    ? "bg-quest-glow/20 text-quest-glow border-quest-glow/40"
-                    : "text-quest-muted border-quest-border hover:text-white"
-                }`}
-              >
-                {f.toUpperCase()}
-              </button>
-            ))}
-          </div>
-
-          <MapView mode={mapFilter} />
-
-          {/* Active quests on map */}
-          <div>
-            <p className="text-[10px] text-quest-muted uppercase tracking-wide mb-2">
-              Active on map
-            </p>
-            <div className="space-y-2">
-              {[
-                { label: "Walk 5 km this week", status: "3.2 / 5 km", color: "#f97316" },
-                { label: "Find 3 new tiles", status: "2 / 3", color: "#fbbf24" },
-              ].map((q) => (
-                <div
-                  key={q.label}
-                  className="flex items-center gap-3 rounded-xl border border-quest-border bg-quest-card px-4 py-2.5"
-                >
-                  <div
-                    className="size-2.5 rounded-full shrink-0"
-                    style={{ background: q.color }}
-                  />
-                  <span className="text-sm text-white flex-1">{q.label}</span>
-                  <span className="text-xs text-quest-muted">{q.status}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+          }
+        >
+          <WalkMap />
+        </Suspense>
       )}
 
       {activeTab === "quests" && (
@@ -411,7 +364,7 @@ export default function Home() {
 
       {/* Bottom nav */}
       <nav
-        className="fixed bottom-0 left-0 right-0 rounded-t-2xl bg-quest-card border-t border-quest-border px-4 py-3 flex justify-around items-center"
+        className="fixed bottom-0 left-0 right-0 z-[60] rounded-t-2xl bg-quest-card border-t border-quest-border px-4 py-3 flex justify-around items-center"
         aria-label="Main navigation"
       >
         <NavItem
