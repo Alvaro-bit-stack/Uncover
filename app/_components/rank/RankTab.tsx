@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import Leaderboard from "../leaderboard/Leaderboard";
 import type { LeaderboardPeriod, LeaderboardResponse } from "../../_types/leaderboard";
+
+const UserMapView = lazy(() => import("../user-map/UserMapView"));
 
 const ME_USER_ID = "u3";
 
@@ -11,6 +13,7 @@ export default function RankTab() {
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewingUser, setViewingUser] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -32,6 +35,18 @@ export default function RankTab() {
     return () => controller.abort();
   }, [period]);
 
+  if (viewingUser) {
+    return (
+      <Suspense fallback={<div className="px-6 py-8 text-quest-muted text-sm">Loading map...</div>}>
+        <UserMapView
+          userId={viewingUser.id}
+          userName={viewingUser.name}
+          onClose={() => setViewingUser(null)}
+        />
+      </Suspense>
+    );
+  }
+
   return (
     <>
       {loading && (
@@ -46,6 +61,7 @@ export default function RankTab() {
           meUserId={ME_USER_ID}
           period={period}
           onChangePeriod={setPeriod}
+          onViewUser={(id, name) => setViewingUser({ id, name })}
         />
       )}
     </>

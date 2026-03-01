@@ -1,10 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type {
-  LeaderboardResponse,
-  LeaderboardPeriod,
-} from "../../_types/leaderboard";
+import type { LeaderboardResponse, LeaderboardPeriod } from "../../_types/leaderboard";
 import { formatCompactNumber } from "../../_lib/format";
 
 type Props = {
@@ -12,13 +9,44 @@ type Props = {
   meUserId?: string;
   period: LeaderboardPeriod;
   onChangePeriod: (p: LeaderboardPeriod) => void;
+  onViewUser?: (userId: string, name: string) => void;
 };
+
+const PillBtn = (props: { label: string; active: boolean; press: () => void }) => (
+  <button
+    type="button"
+    onClick={props.press}
+    className={
+      "text-xs px-3 py-1 rounded-full border transition-colors " +
+      (props.active
+        ? "border-quest-glow text-quest-glow bg-quest-glow/10"
+        : "border-quest-border text-quest-muted hover:text-white hover:border-quest-accent/50")
+    }
+  >
+    {props.label}
+  </button>
+);
+
+const ChevronIcon = () => (
+  <svg
+    width={16}
+    height={16}
+    className="text-quest-muted shrink-0"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path d="M9 5l7 7-7 7" />
+  </svg>
+);
 
 export default function Leaderboard({
   data,
   meUserId,
   period,
   onChangePeriod,
+  onViewUser,
 }: Props) {
   const meRank = useMemo(() => {
     if (!meUserId) return null;
@@ -32,82 +60,43 @@ export default function Leaderboard({
         <div>
           <h2 className="text-lg font-bold text-white">Leaderboard</h2>
           <p className="text-xs text-quest-muted mt-1">
-            Updated {new Date(data.updatedAtISO).toLocaleString()}
-            {meRank ? ` • You are #${meRank}` : ""}
+            {"Updated " + new Date(data.updatedAtISO).toLocaleString() + (meRank != null ? " \u2022 You are #" + meRank : "")}
           </p>
         </div>
-
         <div className="flex gap-2">
-          <PeriodPill
-            label="Day"
-            active={period === "daily"}
-            onClick={() => onChangePeriod("daily")}
-          />
-          <PeriodPill
-            label="Week"
-            active={period === "weekly"}
-            onClick={() => onChangePeriod("weekly")}
-          />
-          <PeriodPill
-            label="All"
-            active={period === "all"}
-            onClick={() => onChangePeriod("all")}
-          />
+          <PillBtn label="Day" active={period === "daily"} press={() => onChangePeriod("daily")} />
+          <PillBtn label="Week" active={period === "weekly"} press={() => onChangePeriod("weekly")} />
+          <PillBtn label="All" active={period === "all"} press={() => onChangePeriod("all")} />
         </div>
       </div>
 
       <div className="rounded-xl border border-quest-border bg-quest-card overflow-hidden">
-        {data.rows.length === 0 && (
-          <div className="px-4 py-8 text-center text-quest-muted text-sm">
-            No explorers yet. Start walking to appear here!
-          </div>
-        )}
         {data.rows.map((row) => {
-          const highlight = meUserId && row.userId === meUserId;
+          const isMe = meUserId != null && row.userId === meUserId;
           return (
-            <div
+            <button
               key={row.userId}
-              className={`flex items-center justify-between px-4 py-3 border-b border-quest-border last:border-0 ${
-                highlight ? "bg-quest-glow/10" : ""
-              }`}
+              type="button"
+              onClick={() => onViewUser?.(row.userId, row.name)}
+              className={
+                "w-full flex items-center justify-between px-4 py-3 border-b border-quest-border last:border-0 text-left transition-colors hover:bg-white/5" +
+                (isMe ? " bg-quest-glow/10" : "")
+              }
             >
-              <span className="text-quest-muted w-10 tabular-nums">
-                #{row.rank}
+              <span className="text-quest-muted w-10 tabular-nums">{"#" + row.rank}</span>
+              <span className="font-medium text-white flex-1 truncate">{row.name}</span>
+              <span className="text-quest-accent font-bold tabular-nums mr-3">
+                {formatCompactNumber(row.xp) + " XP"}
               </span>
-              <span className="font-medium text-white flex-1 truncate">
-                {row.name}
-              </span>
-              <span className="text-quest-accent font-bold tabular-nums">
-                {formatCompactNumber(row.xp)} steps
-              </span>
-            </div>
+              <ChevronIcon />
+            </button>
           );
         })}
       </div>
-    </div>
-  );
-}
 
-function PeriodPill({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-        active
-          ? "border-quest-glow text-quest-glow bg-quest-glow/10"
-          : "border-quest-border text-quest-muted hover:text-white hover:border-quest-accent/50"
-      }`}
-    >
-      {label}
-    </button>
+      <p className="text-center text-quest-muted mt-3" style={{ fontSize: 10 }}>
+        Tap a player to view their explored map
+      </p>
+    </div>
   );
 }

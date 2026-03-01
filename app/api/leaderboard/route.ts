@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-type Period = "daily" | "weekly" | "monthly" | "alltime";
+type Period = "daily" | "weekly" | "all";
 
 function getMock(period: Period) {
   // later: replace this function with a Supabase query, keep the response shape the same
@@ -16,7 +16,6 @@ function getMock(period: Period) {
   const factor =
     period === "daily" ? 0.08 :
     period === "weekly" ? 0.25 :
-    period === "monthly" ? 0.6 :
     1;
 
   return base
@@ -29,12 +28,12 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const period = (searchParams.get("period") ?? "weekly") as Period;
 
-  const allowed: Period[] = ["daily", "weekly", "monthly", "alltime"];
+  const allowed: Period[] = ["daily", "weekly", "all"];
   const safePeriod: Period = allowed.includes(period) ? period : "weekly";
 
   return NextResponse.json({
     period: safePeriod,
-    updatedAt: new Date().toISOString(),
+    updatedAtISO: new Date().toISOString(),
     rows: getMock(safePeriod),
   });
 }
