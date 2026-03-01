@@ -14,6 +14,7 @@ const OSRM_BASE = "https://router.project-osrm.org/route/v1/foot";
 const OSRM_NEAREST = "https://router.project-osrm.org/nearest/v1/foot";
 const ACHIEVEMENTS_KEY = "walkmap-achievements";
 const DAYS_KEY = "walkmap-days";
+const WEEKLY_KEY = "walkmap-weekly";
 const EXPLORE_HIT_RADIUS_M = 30;
 
 interface Zone {
@@ -127,6 +128,30 @@ function trackActiveDay() {
       days.push(today);
       localStorage.setItem(DAYS_KEY, JSON.stringify(days));
     }
+  } catch {}
+}
+
+function getWeekStart(): string {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diff);
+  return monday.toISOString().slice(0, 10);
+}
+
+function updateWeekly(distAddedMeters: number, newTile: boolean) {
+  try {
+    const weekStart = getWeekStart();
+    const raw = localStorage.getItem(WEEKLY_KEY);
+    const stored = raw ? JSON.parse(raw) : null;
+    const base =
+      stored?.weekStart === weekStart
+        ? stored
+        : { weekStart, distMeters: 0, tilesFound: 0 };
+    base.distMeters += distAddedMeters;
+    if (newTile) base.tilesFound += 1;
+    localStorage.setItem(WEEKLY_KEY, JSON.stringify(base));
   } catch {}
 }
 
@@ -304,6 +329,7 @@ export default function WalkMap() {
     scheduleRedraw();
     checkZoneAchievements();
     trackActiveDay();
+    updateWeekly(0, true);
   }
 
   function moveMarkerTo(lat: number, lng: number) {
@@ -315,6 +341,7 @@ export default function WalkMap() {
       stepsRef.current += Math.round(d / 0.75);
       setSteps(stepsRef.current);
       setDistance(formatDist(totalDistRef.current));
+      updateWeekly(d, false);
 
       positionsRef.current.push([lat, lng]);
       if (positionsRef.current.length > 500) positionsRef.current.shift();
