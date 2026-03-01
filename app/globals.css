@@ -283,7 +283,7 @@ body {
 
 /* ─── DEMO WALK ─── */
 .wm-demo-btn {
-  position: absolute; left: 20px; bottom: 230px; z-index: 800;
+  position: absolute; left: 10px; bottom: 315px; z-index: 800;
   display: flex; align-items: center; gap: 6px;
   background: linear-gradient(135deg, rgba(255,183,3,0.15), rgba(255,77,109,0.15));
   backdrop-filter: blur(16px);
