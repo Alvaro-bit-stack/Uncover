@@ -149,7 +149,7 @@ export default function Home() {
         </span>
         <h1 className="flex items-center gap-1.5 text-quest-glow font-bold text-sm tracking-wider">
           <StarIcon className="size-4" />
-          CAMPUSQUEST
+          UNCOVER
         </h1>
         <div className="relative" ref={menuRef}>
           <button
