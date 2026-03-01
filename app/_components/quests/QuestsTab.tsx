@@ -86,26 +86,40 @@ export default function QuestsTab() {
     },
   ];
 
+  const daysUntilDrop = Math.max(
+    0,
+    Math.ceil((new Date("2026-03-15").getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000)
+  );
+
   return (
     <div className="px-6 py-8 space-y-8">
 
       {/* Next Event Banner */}
-      <div className="border px-5 py-4 flex items-start gap-4">
-        <div className="mt-0.5 flex-shrink-0 size-10 rounded-xl flex items-center justify-center text-xl">
-          📍
+      <div className="rounded-2xl bg-gradient-to-br from-quest-card to-quest-dark border border-quest-glow/25 overflow-hidden">
+        <div className="px-5 pt-5 pb-4">
+          <div className="flex justify-end mb-3">
+            <span className="text-xs text-quest-muted bg-white/5 rounded-full px-3 py-0.5">
+              {daysUntilDrop === 0 ? "Today!" : `${daysUntilDrop} days away`}
+            </span>
+          </div>
+          <p className="text-white font-bold text-lg leading-tight mb-2">
+            Campus Town Drop
+          </p>
+          <p className="text-quest-muted text-sm leading-relaxed">
+            Bonus points are getting scattered across explored turf on the 15th. 
+            The more ground you&apos;ve covered by then, the more loot lands in your zone.
+            Walk more now, cash in later.
+          </p>
         </div>
-        <div>
-          <p className="text-[10px] uppercase tracking-widest mb-0.5 font-semibold">
-            Next Event
-          </p>
-          <p className="text-white font-bold text-base leading-tight">
-            Campus Town Drop — March 15
-          </p>
-          <p className="text-quest-muted text-sm mt-1 leading-snug">
-            Hidden bonus points will appear inside your already-explored map tiles.
-            The more of the map you&apos;ve uncovered, the wider your chance to discover them.
-            Keep walking to claim your territory before the drop.
-          </p>
+        <div className="border-t border-quest-border px-5 py-3 flex items-center gap-2">
+          <span className="text-xs text-quest-muted">Your coverage so far</span>
+          <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-quest-glow/60"
+              style={{ width: `${Math.min(100, Math.round((q.weeklyKm / 5) * 100))}%` }}
+            />
+          </div>
+          <span className="text-xs text-quest-glow font-medium">{q.weeklyKm} km</span>
         </div>
       </div>
 
