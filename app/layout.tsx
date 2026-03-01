@@ -1,5 +1,6 @@
 import "./globals.css";
 import "mapbox-gl/dist/mapbox-gl.css";
+import "leaflet/dist/leaflet.css";
 
 export default function RootLayout({
   children,
