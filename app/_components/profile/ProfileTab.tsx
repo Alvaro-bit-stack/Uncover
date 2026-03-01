@@ -1,8 +1,23 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 const AVATAR_KEY = "walkmap-avatar";
+
+// Pixel art seeds — shown in the picker
+const PIXEL_AVATARS = [
+  "Shadow","Blaze","Nova","Pixel","Ghost","Storm","Viper","Echo",
+  "Frost","Drift","Sage","Rune","Flux","Crypt","Dusk","Ember",
+  "Glitch","Hawk","Iris","Jinx","Kira","Lore","Mist","Neon",
+  "Orion","Prism","Quinn","Rift","Sable","Titan","Ultra","Volt",
+  "Wren","Xenon","Yuki","Zara","Ace","Byte","Comet","Delta",
+  "Edge","Faze","Grid","Haze","Icon","Jade","Knox","Lyra",
+  "Mars","Night","Opal","Punk","Quill","Rex","Sync","Thorn",
+];
+
+function pixelUrl(seed: string) {
+  return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`;
+}
 
 function StarIcon({ className }: { className?: string }) {
   return (
@@ -43,12 +58,13 @@ interface ProfileTabProps {
 }
 
 export default function ProfileTab({ displayName, magicActive, onAvatarTap }: ProfileTabProps) {
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarSeed, setAvatarSeed] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [stats, setStats] = useState({ km: "0.0", tiles: 0, spots: 0, days: 0 });
 
   useEffect(() => {
-    try { setAvatarUrl(localStorage.getItem(AVATAR_KEY)); } catch {}
+    try { setAvatarSeed(localStorage.getItem(AVATAR_KEY)); } catch {}
   }, []);
 
   useEffect(() => {
@@ -57,58 +73,113 @@ export default function ProfileTab({ displayName, magicActive, onAvatarTap }: Pr
       const state = raw ? JSON.parse(raw) : null;
       const km = state?.totalDist ? (state.totalDist / 1000).toFixed(1) : "0.0";
       const tiles = state?.exploredPoints ? (state.exploredPoints as unknown[]).length : 0;
-
       const achRaw = localStorage.getItem("walkmap-achievements");
       const spots = achRaw ? (JSON.parse(achRaw) as unknown[]).length : 0;
-
       const daysRaw = localStorage.getItem("walkmap-days");
       const days = daysRaw ? (JSON.parse(daysRaw) as unknown[]).length : 0;
-
       setStats({ km, tiles, spots, days });
     } catch {}
   }, []);
 
-  function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setAvatarUrl(dataUrl);
-      try { localStorage.setItem(AVATAR_KEY, dataUrl); } catch {}
-    };
-    reader.readAsDataURL(file);
+  function selectAvatar(seed: string) {
+    setAvatarSeed(seed);
+    try { localStorage.setItem(AVATAR_KEY, seed); } catch {}
+    setPickerOpen(false);
+    setSearch("");
   }
+
+  const filtered = PIXEL_AVATARS.filter((s) =>
+    s.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <>
+      {/* Avatar Picker Modal */}
+      {pickerOpen && (
+        <div className="fixed inset-0 z-200 flex flex-col">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => { setPickerOpen(false); setSearch(""); }}
+          />
+          {/* Sheet */}
+          <div className="relative mt-auto rounded-t-2xl bg-quest-card border-t border-white/8 flex flex-col max-h-[75vh]">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-8 h-1 rounded-full bg-white/15" />
+            </div>
+            <div className="px-5 pt-2 pb-3 flex items-center justify-between">
+              <p className="text-xs font-semibold tracking-widest uppercase text-white/70">Choose Avatar</p>
+              <button
+                type="button"
+                onClick={() => { setPickerOpen(false); setSearch(""); }}
+                className="text-white/30 hover:text-white/70 text-lg leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            {/* Search */}
+            <div className="px-5 pb-3">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search avatars..."
+                autoFocus
+                className="w-full bg-quest-dark border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-quest-accent/40 transition-colors"
+              />
+            </div>
+            {/* Grid */}
+            <div className="overflow-y-auto px-5 pb-6">
+              {filtered.length === 0 ? (
+                <p className="text-sm text-quest-muted text-center py-8">No avatars found</p>
+              ) : (
+                <div className="grid grid-cols-5 gap-3">
+                  {filtered.map((seed) => (
+                    <button
+                      key={seed}
+                      type="button"
+                      onClick={() => selectAvatar(seed)}
+                      className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
+                        avatarSeed === seed
+                          ? "border-quest-accent bg-quest-accent/10"
+                          : "border-white/6 hover:border-white/20 bg-quest-dark/50"
+                      }`}
+                    >
+                      <img
+                        src={pixelUrl(seed)}
+                        alt={seed}
+                        className="size-12"
+                        loading="lazy"
+                      />
+                      <span className="text-[9px] text-white/40 truncate w-full text-center">{seed}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Profile */}
       <section className="flex flex-col items-center px-6 pt-4 pb-6">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleAvatarUpload}
-        />
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="group flex flex-col items-center gap-2 focus:outline-none"
-          aria-label="Upload profile picture"
+          onClick={() => setPickerOpen(true)}
+          className="flex flex-col items-center gap-2 focus:outline-none"
+          aria-label="Choose pixel art avatar"
         >
           <div
-            className={`size-24 rounded-full overflow-hidden ring-1 transition-all duration-300 ${
-              magicActive
-                ? "ring-quest-glow scale-105"
-                : "ring-quest-accent/40"
+            className={`size-24 rounded-full overflow-hidden ring-1 bg-quest-dark transition-all duration-300 ${
+              magicActive ? "ring-quest-glow scale-105" : "ring-quest-accent/40"
             }`}
           >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+            {avatarSeed ? (
+              <img src={pixelUrl(avatarSeed)} alt={avatarSeed} className="w-full h-full" />
             ) : (
-              <div className="w-full h-full bg-quest-accent/90 flex items-center justify-center text-4xl">
-                {"\u{1F4F7}"}
+              <div className="w-full h-full flex items-center justify-center text-3xl">
+                🎮
               </div>
             )}
           </div>
@@ -116,7 +187,7 @@ export default function ProfileTab({ displayName, magicActive, onAvatarTap }: Pr
             {displayName}
           </span>
           <span className="text-xs text-quest-muted tracking-widest">
-            {avatarUrl ? "Change photo" : "Add photo"}
+            {avatarSeed ? `${avatarSeed} · Change` : "Pick your avatar"}
           </span>
         </button>
       </section>
