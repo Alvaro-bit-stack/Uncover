@@ -39,8 +39,9 @@ interface QuestState {
   streak: number;
 }
 
-export default function QuestsTab() {
+export default function QuestsTab({ onRegister }: { onRegister?: () => void }) {
   const [q, setQ] = useState<QuestState>({ weeklyKm: 0, weeklyTiles: 0, streak: 0 });
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -182,12 +183,92 @@ export default function QuestsTab() {
           <button
             type="button"
             className="w-full rounded-lg border border-quest-glow/30 text-quest-glow font-semibold py-2.5 text-xs tracking-widest uppercase hover:bg-quest-glow/8 active:scale-[0.98] transition-all focus:outline-none"
-            onClick={() => alert("Tournament registration coming soon!")}
+            onClick={() => setCheckoutOpen(true)}
           >
             Register — $5.00
           </button>
         </div>
       </div>
+
+      {/* Checkout sheet */}
+      {checkoutOpen && (
+        <div className="fixed inset-0 z-200 flex flex-col">
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setCheckoutOpen(false)}
+          />
+          <div className="relative mt-auto rounded-t-2xl bg-quest-card border-t border-white/8 flex flex-col">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-8 h-1 rounded-full bg-white/15" />
+            </div>
+
+            <div className="px-5 pt-3 pb-2 flex items-center justify-between">
+              <p className="text-xs font-semibold tracking-widest uppercase text-white/70">Tournament Entry · $5.00</p>
+              <button
+                type="button"
+                onClick={() => setCheckoutOpen(false)}
+                className="text-white/30 hover:text-white/70 text-lg leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="px-5 pb-8 space-y-5 mt-2">
+              {/* Card number */}
+              <div>
+                <label className="text-[10px] text-quest-muted uppercase tracking-widest mb-2 block">Card Number</label>
+                <input
+                  type="text"
+                  placeholder="1234 5678 9012 3456"
+                  maxLength={19}
+                  className="w-full border-b border-white/12 bg-transparent pb-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-quest-accent/50 transition-colors tracking-widest"
+                />
+              </div>
+
+              {/* Expiry + CVC */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] text-quest-muted uppercase tracking-widest mb-2 block">Expiry</label>
+                  <input
+                    type="text"
+                    placeholder="MM / YY"
+                    maxLength={7}
+                    className="w-full border-b border-white/12 bg-transparent pb-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-quest-accent/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-quest-muted uppercase tracking-widest mb-2 block">CVC</label>
+                  <input
+                    type="text"
+                    placeholder="•••"
+                    maxLength={3}
+                    className="w-full border-b border-white/12 bg-transparent pb-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-quest-accent/50 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Cardholder name */}
+              <div>
+                <label className="text-[10px] text-quest-muted uppercase tracking-widest mb-2 block">Name on Card</label>
+                <input
+                  type="text"
+                  placeholder="Full name"
+                  className="w-full border-b border-white/12 bg-transparent pb-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-quest-accent/50 transition-colors"
+                />
+              </div>
+
+              {/* Pay button */}
+              <button
+                type="button"
+                className="w-full mt-2 rounded-lg bg-quest-accent text-white font-semibold py-3 text-xs tracking-widest uppercase hover:bg-quest-accent/85 active:scale-[0.98] transition-all focus:outline-none"
+              >
+                Pay $5.00
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

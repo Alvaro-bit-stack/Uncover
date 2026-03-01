@@ -13,9 +13,16 @@ const PIXEL_AVATARS = [
   "Wren","Xenon","Yuki","Zara","Ace","Byte","Comet","Delta",
   "Edge","Faze","Grid","Haze","Icon","Jade","Knox","Lyra",
   "Mars","Night","Opal","Punk","Quill","Rex","Sync","Thorn",
+  "Duck",
 ];
 
+// Special overrides — use a real image instead of DiceBear
+const AVATAR_OVERRIDES: Record<string, string> = {
+  Duck: "https://openmoji.org/data/color/svg/1F986.svg",
+};
+
 function pixelUrl(seed: string) {
+  if (AVATAR_OVERRIDES[seed]) return AVATAR_OVERRIDES[seed];
   return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`;
 }
 
