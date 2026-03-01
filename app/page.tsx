@@ -13,6 +13,8 @@ const WalkMap = lazy(() => import("./_components/walk-map/WalkMap"));
 
 type Tab = "map" | "quests" | "rank" | "me";
 
+const AVATAR_KEY = "walkmap-avatar";
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("me");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -20,6 +22,8 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState("");
   const [mapFilter, setMapFilter] = useState<"tiles" | "quests">("tiles");
   const menuRef = useRef<HTMLDivElement>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [leaderboardPeriod, setLeaderboardPeriod] =
   useState<LeaderboardPeriod>("weekly");
   const [user, setUser] = useState<User | null>(null);
@@ -34,6 +38,22 @@ export default function Home() {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
   }, []);
+
+  useEffect(() => {
+    try { setAvatarUrl(localStorage.getItem(AVATAR_KEY)); } catch {}
+  }, []);
+
+  function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setAvatarUrl(dataUrl);
+      try { localStorage.setItem(AVATAR_KEY, dataUrl); } catch {}
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -184,37 +204,44 @@ export default function Home() {
         <>
           {/* Profile */}
           <section className="flex flex-col items-center px-6 pt-4 pb-6">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
             <button
               type="button"
-              onClick={handleAvatarTap}
+              onClick={() => fileInputRef.current?.click()}
               className="group flex flex-col items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-quest-glow rounded-lg"
-              aria-label="Tap avatar for magic"
+              aria-label="Upload profile picture"
             >
               <div
-                className={`size-24 rounded-lg bg-quest-accent/90 grid grid-cols-4 grid-rows-4 gap-0.5 p-1 transition-all duration-300 ${
+                className={`size-24 rounded-full overflow-hidden transition-all duration-300 ${
                   magicActive
                     ? "shadow-[0_0_40px_rgba(251,191,36,0.6)] scale-110"
                     : "shadow-[0_0_24px_rgba(249,115,22,0.5)]"
-                }`}
+                } ring-3 ring-quest-accent`}
               >
-                {Array.from({ length: 16 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`size-4 rounded-sm transition-colors ${
-                      magicActive ? "bg-quest-glow" : "bg-quest-accent"
-                    }`}
-                    style={{
-                      opacity: i % 4 === 0 || i < 4 ? 1 : 0.7,
-                    }}
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
                   />
-                ))}
+                ) : (
+                  <div className="w-full h-full bg-quest-accent/90 flex items-center justify-center text-4xl">
+                    {"\u{1F4F7}"}
+                  </div>
+                )}
               </div>
               <span className="text-2xl font-bold tracking-wider text-quest-glow">
                 {displayName}
               </span>
               <span className="flex items-center gap-1 text-sm text-quest-muted">
                 <StarIcon className="size-3" />
-                TAP AVATAR FOR MAGIC
+                {avatarUrl ? "TAP TO CHANGE PHOTO" : "TAP TO ADD PHOTO"}
                 <StarIcon className="size-3" />
               </span>
             </button>

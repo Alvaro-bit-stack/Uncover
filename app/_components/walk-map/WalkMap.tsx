@@ -8,6 +8,32 @@ const DEG_PER_M_LAT = 1 / 111320;
 const degPerMLng = (lat: number) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
 const REVEAL_RADIUS_PX = 60;
 const FOG_COLOR = "rgba(30, 25, 40, 0.92)";
+const STORAGE_KEY = "walkmap-state";
+const AVATAR_KEY = "walkmap-avatar";
+
+interface SavedState {
+  exploredPoints: { lat: number; lng: number }[];
+  simPos: { lat: number; lng: number };
+  trail: [number, number][];
+  steps: number;
+  totalDist: number;
+}
+
+function loadState(): SavedState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SavedState;
+  } catch {
+    return null;
+  }
+}
+
+function saveState(state: SavedState) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch { /* quota exceeded, ignore */ }
+}
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371000;
@@ -99,6 +125,16 @@ export default function WalkMap() {
     rafRef.current = requestAnimationFrame(drawFog);
   }
 
+  function persistState() {
+    saveState({
+      exploredPoints: exploredPointsRef.current,
+      simPos: simPosRef.current ?? { lat: 40.7448, lng: -74.0244 },
+      trail: positionsRef.current,
+      steps: stepsRef.current,
+      totalDist: totalDistRef.current,
+    });
+  }
+
   function addExploredPoint(lat: number, lng: number) {
     const last = exploredPointsRef.current[exploredPointsRef.current.length - 1];
     if (last) {
@@ -107,6 +143,7 @@ export default function WalkMap() {
     }
     exploredPointsRef.current.push({ lat, lng });
     setTilesExplored(exploredPointsRef.current.length);
+    persistState();
     scheduleRedraw();
   }
 
@@ -163,10 +200,14 @@ export default function WalkMap() {
     const body = document.getElementById("wm-avBody");
     if (body) {
       body.classList.add("walking");
-      body.textContent = "\u{1F6B6}";
+      if (!body.classList.contains("has-img")) {
+        body.textContent = "\u{1F6B6}";
+      }
       setTimeout(() => {
         body.classList.remove("walking");
-        body.textContent = "\u{1F9D1}";
+        if (!body.classList.contains("has-img")) {
+          body.textContent = "\u{1F9D1}";
+        }
       }, 400);
     }
 
@@ -174,7 +215,7 @@ export default function WalkMap() {
     moveMarkerTo(lat, lng);
   }
 
-  // Auto-start: init map immediately
+  // Auto-start: init map immediately, restore saved state if available
   useEffect(() => {
     let cancelled = false;
 
@@ -184,14 +225,14 @@ export default function WalkMap() {
       const Leaf = (await import("leaflet")).default;
       if (cancelled) return;
 
-      const lat = 40.7448;
-      const lng = -74.0244;
+      const saved = loadState();
+      const startPos = saved?.simPos ?? { lat: 40.7448, lng: -74.0244 };
 
       const map = Leaf.map(mapContainerRef.current, {
         zoomControl: false,
         attributionControl: false,
         doubleClickZoom: false,
-      }).setView([lat, lng], 17);
+      }).setView([startPos.lat, startPos.lng], 17);
 
       Leaf.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 20,
@@ -206,13 +247,20 @@ export default function WalkMap() {
         interactive: false,
       }).addTo(map);
 
+      let avatarPic: string | null = null;
+      try { avatarPic = localStorage.getItem(AVATAR_KEY); } catch {}
+
+      const bodyContent = avatarPic
+        ? `<img src="${avatarPic}" class="wm-av-img" alt="" />`
+        : "\u{1F9D1}";
+
       const avatarHTML = `
         <div class="wm-av-wrap">
           <div class="wm-av-ripple"></div>
           <div class="wm-av-ripple"></div>
           <div class="wm-av-ripple"></div>
           <div class="wm-av-accuracy"></div>
-          <div class="wm-av-body" id="wm-avBody">\u{1F9D1}</div>
+          <div class="wm-av-body ${avatarPic ? "has-img" : ""}" id="wm-avBody">${bodyContent}</div>
           <div class="wm-av-shadow"></div>
           <div class="wm-av-dir" id="wm-avDir"></div>
         </div>`;
@@ -224,7 +272,7 @@ export default function WalkMap() {
         iconAnchor: [36, 36],
       });
 
-      markerRef.current = Leaf.marker([lat, lng], { icon: avatarIcon }).addTo(map);
+      markerRef.current = Leaf.marker([startPos.lat, startPos.lng], { icon: avatarIcon }).addTo(map);
 
       map.on("dragstart", () => { isFollowingRef.current = false; });
       map.on("move", scheduleRedraw);
@@ -232,15 +280,29 @@ export default function WalkMap() {
       map.on("resize", scheduleRedraw);
 
       mapRef.current = map;
-      simPosRef.current = { lat, lng };
-      lastPosRef.current = { lat, lng };
-      positionsRef.current = [[lat, lng]];
-      trailRef.current.setLatLngs([[lat, lng]]);
+      simPosRef.current = startPos;
+      lastPosRef.current = startPos;
 
-      addExploredPoint(lat, lng);
-      setCoordLabel(formatCoord(lat, lng));
+      if (saved) {
+        exploredPointsRef.current = saved.exploredPoints;
+        positionsRef.current = saved.trail;
+        stepsRef.current = saved.steps;
+        totalDistRef.current = saved.totalDist;
+        setSteps(saved.steps);
+        setDistance(formatDist(saved.totalDist));
+        setTilesExplored(saved.exploredPoints.length);
+        trailRef.current.setLatLngs(saved.trail);
+        scheduleRedraw();
+        showToast("\u{1F4BE} Progress restored");
+      } else {
+        positionsRef.current = [[startPos.lat, startPos.lng]];
+        trailRef.current.setLatLngs([[startPos.lat, startPos.lng]]);
+        addExploredPoint(startPos.lat, startPos.lng);
+        showToast("\u{1F3AE} Use arrows to walk around");
+      }
+
+      setCoordLabel(formatCoord(startPos.lat, startPos.lng));
       setReady(true);
-      showToast("\u{1F3AE} Use arrows to walk around");
     }
 
     boot();
