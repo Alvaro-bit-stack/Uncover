@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # UNCOVER
 
 > **Explore your campus town.** A fog-of-war exploration game that turns your daily walk into an adventure.
@@ -39,6 +40,9 @@ Most people walk the same three routes every day and never realize what's around
 | Language | TypeScript |
 
 ---
+=======
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app)...
+>>>>>>> e1093aa18f66a7c9494dae90f63526bbf64f1f79
 
 ## Getting Started
 

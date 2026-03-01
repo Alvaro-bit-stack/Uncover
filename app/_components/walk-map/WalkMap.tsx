@@ -913,24 +913,6 @@ export default function WalkMap() {
             {"\u2295"}
           </button>
 
-          {/* Arrow buttons */}
-          <div className="wm-arrows">
-            <button className="wm-arrow-btn wm-arrow-up" onClick={() => handleSimMove("up")}>
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>
-            </button>
-            <div className="wm-arrow-mid">
-              <button className="wm-arrow-btn" onClick={() => handleSimMove("left")}>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 12l8-8v5h8v6h-8v5z"/></svg>
-              </button>
-              <button className="wm-arrow-btn" onClick={() => handleSimMove("right")}>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 12l-8 8v-5H4v-6h8V4z"/></svg>
-              </button>
-            </div>
-            <button className="wm-arrow-btn wm-arrow-down" onClick={() => handleSimMove("down")}>
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20l8-8h-5V4h-6v8H4z"/></svg>
-            </button>
-          </div>
-
           {/* Demo Walk */}
           <button
             className="wm-demo-btn"

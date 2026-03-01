@@ -21,8 +21,18 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    let mounted = true;
+    try {
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data }) => {
+        if (mounted) setUser(data.user);
+      }).catch(() => {
+        if (mounted) setUser(null);
+      });
+    } catch {
+      if (mounted) setUser(null);
+    }
+    return () => { mounted = false; };
   }, []);
 
   async function handleSignOut() {
