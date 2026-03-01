@@ -61,6 +61,17 @@ body {
   overflow: hidden;
 }
 
+.wm-rotatable {
+  position: absolute;
+  width: 150%;
+  height: 150%;
+  top: -25%;
+  left: -25%;
+  z-index: 0;
+  transition: transform 0.15s ease-out;
+  transform-origin: center center;
+}
+
 .wm-map {
   position: absolute;
   inset: 0;
@@ -85,6 +96,7 @@ body {
 .wm-root .leaflet-control-attribution,
 .wm-root .leaflet-control-zoom { display: none; }
 .wm-root .leaflet-div-icon { background: none !important; border: none !important; }
+.wm-root .leaflet-marker-icon { transition: transform 0.15s ease-out; }
 .wm-root .leaflet-interactive { outline: none; }
 
 /* ─── AVATAR MARKER ─── */
@@ -246,8 +258,16 @@ body {
   background: rgba(13,13,20,0.85); backdrop-filter: blur(16px);
   border: 1px solid rgba(255,255,255,0.08);
   display: flex; align-items: center; justify-content: center;
-  position: relative;
+  position: relative; cursor: pointer; padding: 0;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  transition: border-color 0.2s;
+}
+.wm-compass:active { border-color: rgba(255,77,109,0.4); }
+.wm-compass-inner {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  transition: transform 0.25s ease-out;
 }
 .wm-compass-n {
   position: absolute; top: 6px;
@@ -260,6 +280,22 @@ body {
   border-radius: 2px; transform-origin: center;
   transition: transform 0.5s ease;
 }
+
+/* ─── DEMO WALK ─── */
+.wm-demo-btn {
+  position: absolute; left: 20px; bottom: 230px; z-index: 800;
+  display: flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, rgba(255,183,3,0.15), rgba(255,77,109,0.15));
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,183,3,0.3);
+  border-radius: 24px; padding: 10px 16px;
+  color: #FFB703; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.5px; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  transition: transform 0.15s, border-color 0.2s, background 0.2s;
+}
+.wm-demo-btn:active { transform: scale(0.93); border-color: rgba(255,183,3,0.6); }
+.wm-demo-icon { font-size: 16px; }
 
 /* ─── RECENTER ─── */
 .wm-recenter-btn {

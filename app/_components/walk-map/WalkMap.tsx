@@ -6,7 +6,7 @@ import type L from "leaflet";
 const STEP_DIST_M = 25;
 const DEG_PER_M_LAT = 1 / 111320;
 const degPerMLng = (lat: number) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
-const REVEAL_RADIUS_PX = 60;
+const REVEAL_RADIUS_M = 20;
 const FOG_COLOR = "rgba(30, 25, 40, 0.92)";
 const STORAGE_KEY = "walkmap-state";
 const AVATAR_KEY = "walkmap-avatar";
@@ -180,12 +180,15 @@ export default function WalkMap() {
   const movingRef = useRef(false);
   const achievedRef = useRef<Set<string>>(new Set());
   const zoneCheckpointsRef = useRef<Map<string, { lat: number; lng: number }[]>>(new Map());
+  const bearingRef = useRef(0);
+  const rotateStartRef = useRef<{ angle: number; bearing: number } | null>(null);
 
   const [ready, setReady] = useState(false);
   const [coordLabel, setCoordLabel] = useState("");
   const [steps, setSteps] = useState(0);
   const [distance, setDistance] = useState("0m");
   const [compassDeg, setCompassDeg] = useState(0);
+  const [bearing, setBearing] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [tilesExplored, setTilesExplored] = useState(0);
   const [achievement, setAchievement] = useState<{ emoji: string; name: string } | null>(null);
@@ -197,6 +200,16 @@ export default function WalkMap() {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => setToast(null), 2500);
   }, []);
+
+  function metersToPixels(meters: number, lat: number) {
+    const map = mapRef.current;
+    if (!map) return 60;
+    const latlng = { lat, lng: 0 };
+    const p1 = map.latLngToContainerPoint(latlng);
+    const offsetLat = lat + meters * DEG_PER_M_LAT;
+    const p2 = map.latLngToContainerPoint({ lat: offsetLat, lng: 0 });
+    return Math.abs(p2.y - p1.y);
+  }
 
   function drawFog() {
     const map = mapRef.current;
@@ -215,16 +228,39 @@ export default function WalkMap() {
 
     ctx.globalCompositeOperation = "destination-out";
 
-    for (const pt of exploredPointsRef.current) {
+    const pts = exploredPointsRef.current;
+    if (pts.length === 0) {
+      ctx.globalCompositeOperation = "source-over";
+      return;
+    }
+
+    const centerLat = map.getCenter().lat;
+    const R = metersToPixels(REVEAL_RADIUS_M, centerLat);
+
+    if (pts.length >= 2) {
+      ctx.lineWidth = R * 2;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "rgba(0,0,0,1)";
+      ctx.beginPath();
+      const first = map.latLngToContainerPoint([pts[0].lat, pts[0].lng]);
+      ctx.moveTo(first.x, first.y);
+      for (let i = 1; i < pts.length; i++) {
+        const px = map.latLngToContainerPoint([pts[i].lat, pts[i].lng]);
+        ctx.lineTo(px.x, px.y);
+      }
+      ctx.stroke();
+    }
+
+    for (const pt of pts) {
       const px = map.latLngToContainerPoint([pt.lat, pt.lng]);
-      const gradient = ctx.createRadialGradient(px.x, px.y, 0, px.x, px.y, REVEAL_RADIUS_PX);
-      gradient.addColorStop(0, "rgba(0,0,0,1)");
-      gradient.addColorStop(0.5, "rgba(0,0,0,0.8)");
-      gradient.addColorStop(0.8, "rgba(0,0,0,0.3)");
+      const gradient = ctx.createRadialGradient(px.x, px.y, R * 0.6, px.x, px.y, R);
+      gradient.addColorStop(0, "rgba(0,0,0,0)");
+      gradient.addColorStop(0.4, "rgba(0,0,0,0.15)");
       gradient.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = gradient;
       ctx.beginPath();
-      ctx.arc(px.x, px.y, REVEAL_RADIUS_PX, 0, Math.PI * 2);
+      ctx.arc(px.x, px.y, R, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -377,6 +413,124 @@ export default function WalkMap() {
     tick();
   }
 
+  async function handleDemoWalk() {
+    if (movingRef.current) return;
+    movingRef.current = true;
+
+    if (achievedRef.current.has("stevens")) {
+      achievedRef.current.delete("stevens");
+      saveAchievements(achievedRef.current);
+    }
+
+    // Street-corner waypoints zigzagging through Stevens campus roads
+    const waypoints: [number, number][] = [
+      // Start: 6th St & Hudson St (SW corner)
+      [40.7431, -74.0262],
+      // East on 6th St
+      [40.7431, -74.0248],
+      [40.7431, -74.0237],
+      [40.7431, -74.0227],
+      // North on River Terrace
+      [40.7437, -74.0227],
+      // West on campus path
+      [40.7437, -74.0237],
+      [40.7437, -74.0248],
+      // West to Hudson St
+      [40.7437, -74.0262],
+      // North on Hudson St
+      [40.7443, -74.0262],
+      // East through mid-campus
+      [40.7443, -74.0248],
+      [40.7443, -74.0237],
+      [40.7443, -74.0227],
+      // North on east side
+      [40.7449, -74.0227],
+      // West on 7th St
+      [40.7449, -74.0237],
+      [40.7449, -74.0248],
+      [40.7449, -74.0262],
+      // North on Hudson St
+      [40.7455, -74.0262],
+      // East through upper campus
+      [40.7455, -74.0248],
+      [40.7455, -74.0237],
+      [40.7455, -74.0227],
+      // North on east side
+      [40.7461, -74.0227],
+      // West on 8th St
+      [40.7461, -74.0237],
+      [40.7461, -74.0248],
+      [40.7461, -74.0262],
+      // North to top edge
+      [40.7467, -74.0262],
+      // East across top
+      [40.7467, -74.0248],
+      [40.7467, -74.0237],
+      [40.7467, -74.0227],
+    ];
+
+    showToast("\u{1F3AC} Building route...");
+
+    const fullPath: [number, number][] = [waypoints[0]];
+
+    for (let w = 0; w < waypoints.length - 1; w++) {
+      const [fromLat, fromLng] = waypoints[w];
+      const [toLat, toLng] = waypoints[w + 1];
+      const route = await fetchRoute(fromLat, fromLng, toLat, toLng);
+      if (route && route.length > 1) {
+        fullPath.push(...route.slice(1));
+      } else {
+        const steps = 5;
+        for (let s = 1; s <= steps; s++) {
+          fullPath.push([
+            fromLat + (toLat - fromLat) * (s / steps),
+            fromLng + (toLng - fromLng) * (s / steps),
+          ]);
+        }
+      }
+    }
+
+    const startPt = fullPath[0];
+    simPosRef.current = { lat: startPt[0], lng: startPt[1] };
+    markerRef.current?.setLatLng(startPt);
+    lastPosRef.current = { lat: startPt[0], lng: startPt[1] };
+
+    // Zoom out to show entire campus, camera stays static during demo
+    if (mapRef.current) {
+      mapRef.current.flyTo([40.7449, -74.0245], 16, { duration: 1 });
+    }
+    const savedFollow = isFollowingRef.current;
+    isFollowingRef.current = false;
+
+    showToast("\u{1F6B6} Walking Stevens campus...");
+
+    let i = 0;
+    const body = document.getElementById("wm-avBody");
+    if (body) {
+      body.classList.add("walking");
+      if (!body.classList.contains("has-img")) body.textContent = "\u{1F6B6}";
+    }
+
+    function tick() {
+      if (i >= fullPath.length) {
+        if (body) {
+          body.classList.remove("walking");
+          if (!body.classList.contains("has-img")) body.textContent = "\u{1F9D1}";
+        }
+        movingRef.current = false;
+        isFollowingRef.current = savedFollow;
+        return;
+      }
+      const [lat, lng] = fullPath[i];
+      simPosRef.current = { lat, lng };
+      moveMarkerTo(lat, lng);
+      i++;
+      setTimeout(tick, 60);
+    }
+
+    setTimeout(tick, 1200);
+  }
+
   async function handleSimMove(dir: "up" | "down" | "left" | "right") {
     if (movingRef.current) return;
     const prev = simPosRef.current;
@@ -400,12 +554,40 @@ export default function WalkMap() {
     if (dir === "right") targetLng += STEP_DIST_M * degPerMLng(prev.lat);
     if (dir === "left") targetLng -= STEP_DIST_M * degPerMLng(prev.lat);
 
-    const route = await fetchRoute(prev.lat, prev.lng, targetLat, targetLng);
+    const snapped = await snapToRoad(targetLat, targetLng);
+
+    const route = await fetchRoute(prev.lat, prev.lng, snapped.lat, snapped.lng);
 
     if (route && route.length > 1) {
-      moveAlongPoints(route.slice(1));
+      const routeDist = route.reduce((sum, [lat, lng], i) => {
+        if (i === 0) return 0;
+        return sum + haversine(route[i - 1][0], route[i - 1][1], lat, lng);
+      }, 0);
+      const straightDist = haversine(prev.lat, prev.lng, snapped.lat, snapped.lng);
+
+      if (straightDist > 1 && routeDist > straightDist * 3) {
+        const ANIM_STEPS = 8;
+        const pts: [number, number][] = [];
+        for (let i = 1; i <= ANIM_STEPS; i++) {
+          pts.push([
+            prev.lat + (snapped.lat - prev.lat) * (i / ANIM_STEPS),
+            prev.lng + (snapped.lng - prev.lng) * (i / ANIM_STEPS),
+          ]);
+        }
+        moveAlongPoints(pts);
+      } else {
+        moveAlongPoints(route.slice(1));
+      }
     } else {
-      movingRef.current = false;
+      const ANIM_STEPS = 8;
+      const pts: [number, number][] = [];
+      for (let i = 1; i <= ANIM_STEPS; i++) {
+        pts.push([
+          prev.lat + (snapped.lat - prev.lat) * (i / ANIM_STEPS),
+          prev.lng + (snapped.lng - prev.lng) * (i / ANIM_STEPS),
+        ]);
+      }
+      moveAlongPoints(pts);
     }
   }
 
@@ -524,10 +706,59 @@ export default function WalkMap() {
     }
   }
 
+  function updateMarkerRotation(deg: number) {
+    const el = document.querySelector(".wm-av-wrap") as HTMLElement | null;
+    if (el) el.style.transform = `rotate(${deg}deg)`;
+  }
+
+  function handleResetNorth() {
+    bearingRef.current = 0;
+    setBearing(0);
+    updateMarkerRotation(0);
+  }
+
+  function getTouchAngle(t1: React.Touch, t2: React.Touch) {
+    return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * (180 / Math.PI);
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    if (e.touches.length === 2) {
+      const angle = getTouchAngle(e.touches[0], e.touches[1]);
+      rotateStartRef.current = { angle, bearing: bearingRef.current };
+    }
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (e.touches.length === 2 && rotateStartRef.current) {
+      const angle = getTouchAngle(e.touches[0], e.touches[1]);
+      const delta = angle - rotateStartRef.current.angle;
+      const newBearing = (rotateStartRef.current.bearing - delta + 360) % 360;
+      bearingRef.current = newBearing;
+      setBearing(newBearing);
+      updateMarkerRotation(newBearing);
+    }
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (e.touches.length < 2) {
+      rotateStartRef.current = null;
+    }
+  }
+
   return (
-    <div className="wm-root">
-      <div ref={mapContainerRef} className="wm-map" />
-      <canvas ref={fogCanvasRef} className="wm-fog-canvas" />
+    <div
+      className="wm-root"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div
+        className="wm-rotatable"
+        style={{ transform: `rotate(${-bearing}deg)` }}
+      >
+        <div ref={mapContainerRef} className="wm-map" />
+        <canvas ref={fogCanvasRef} className="wm-fog-canvas" />
+      </div>
 
       {ready && (
         <>
@@ -551,13 +782,23 @@ export default function WalkMap() {
 
           {/* Compass */}
           <div className="wm-compass-wrap">
-            <div className="wm-compass">
-              <div className="wm-compass-n">N</div>
+            <button
+              className="wm-compass"
+              onClick={handleResetNorth}
+              title="Reset to north"
+              type="button"
+            >
               <div
-                className="wm-compass-needle"
-                style={{ transform: `rotate(${compassDeg}deg)` }}
-              />
-            </div>
+                className="wm-compass-inner"
+                style={{ transform: `rotate(${-bearing}deg)` }}
+              >
+                <div className="wm-compass-n">N</div>
+                <div
+                  className="wm-compass-needle"
+                  style={{ transform: `rotate(${compassDeg}deg)` }}
+                />
+              </div>
+            </button>
           </div>
 
           {/* Recenter */}
@@ -582,6 +823,16 @@ export default function WalkMap() {
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20l8-8h-5V4h-6v8H4z"/></svg>
             </button>
           </div>
+
+          {/* Demo Walk */}
+          <button
+            className="wm-demo-btn"
+            onClick={handleDemoWalk}
+            type="button"
+          >
+            <span className="wm-demo-icon">{"\u{1F3AC}"}</span>
+            Demo Walk
+          </button>
 
           {/* Stats Strip */}
           <div className="wm-stats-strip">
