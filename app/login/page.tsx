@@ -61,23 +61,20 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-quest-dark flex flex-col items-center justify-center px-6">
       {/* Branding */}
-      <div className="text-center mb-10">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <StarIcon className="size-5 text-quest-glow" />
-          <h1 className="text-2xl font-bold text-quest-glow tracking-widest">
-            UNCOVER
-          </h1>
-          <StarIcon className="size-5 text-quest-glow" />
-        </div>
-        <p className="text-quest-muted text-sm">
-          Explore your campus town. Claim your territory.
+      <div className="text-center mb-12">
+        <h1 className="text-3xl font-bold text-quest-glow tracking-[0.3em] mb-3">
+          UNCOVER
+        </h1>
+        <div className="w-8 h-px bg-quest-glow/40 mx-auto mb-3" />
+        <p className="text-quest-muted text-xs tracking-widest uppercase">
+          Explore your campus town
         </p>
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-sm rounded-2xl border border-quest-border bg-quest-card p-6 shadow-xl">
+      <div className="w-full max-w-sm rounded-xl border border-white/8 bg-quest-card p-7">
         {/* Mode tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex border-b border-white/8 mb-7">
           {(["login", "signup"] as const).map((m) => (
             <button
               key={m}
@@ -87,36 +84,36 @@ export default function LoginPage() {
                 setError("");
                 setSuccess("");
               }}
-              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors border ${
+              className={`flex-1 pb-3 text-xs font-semibold tracking-widest uppercase transition-all ${
                 mode === m
-                  ? "bg-quest-glow/20 text-quest-glow border-quest-glow/40"
-                  : "text-quest-muted border-quest-border hover:text-white"
+                  ? "text-quest-glow border-b-2 border-quest-glow -mb-px"
+                  : "text-quest-muted hover:text-white"
               }`}
             >
-              {m === "login" ? "LOGIN" : "SIGN UP"}
+              {m === "login" ? "Login" : "Sign Up"}
             </button>
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {mode === "signup" && (
             <div>
-              <label className="text-[10px] text-quest-muted uppercase tracking-wide mb-1.5 block">
+              <label className="text-[10px] text-quest-muted uppercase tracking-widest mb-2 block">
                 Username
               </label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="EXPLORER"
-                className="w-full rounded-xl border border-quest-border bg-quest-dark px-4 py-3 text-sm text-white placeholder:text-quest-muted/50 focus:outline-none focus:border-quest-accent transition-colors"
+                placeholder="Explorer"
+                className="w-full border-0 border-b border-white/12 bg-transparent pb-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-quest-accent/60 transition-colors"
                 autoComplete="username"
               />
             </div>
           )}
 
           <div>
-            <label className="text-[10px] text-quest-muted uppercase tracking-wide mb-1.5 block">
+            <label className="text-[10px] text-quest-muted uppercase tracking-widest mb-2 block">
               Email
             </label>
             <input
@@ -125,13 +122,13 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@university.edu"
               required
-              className="w-full rounded-xl border border-quest-border bg-quest-dark px-4 py-3 text-sm text-white placeholder:text-quest-muted/50 focus:outline-none focus:border-quest-accent transition-colors"
+              className="w-full border-0 border-b border-white/12 bg-transparent pb-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-quest-accent/60 transition-colors"
               autoComplete="email"
             />
           </div>
 
           <div>
-            <label className="text-[10px] text-quest-muted uppercase tracking-wide mb-1.5 block">
+            <label className="text-[10px] text-quest-muted uppercase tracking-widest mb-2 block">
               Password
             </label>
             <input
@@ -141,19 +138,19 @@ export default function LoginPage() {
               placeholder="••••••••"
               required
               minLength={6}
-              className="w-full rounded-xl border border-quest-border bg-quest-dark px-4 py-3 text-sm text-white placeholder:text-quest-muted/50 focus:outline-none focus:border-quest-accent transition-colors"
+              className="w-full border-0 border-b border-white/12 bg-transparent pb-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-quest-accent/60 transition-colors"
               autoComplete={mode === "login" ? "current-password" : "new-password"}
             />
           </div>
 
           {error && (
-            <p className="text-xs text-red-400 text-center bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-2.5">
+            <p className="text-xs text-red-400/80 text-center border border-red-400/15 rounded-lg px-4 py-2.5">
               {error}
             </p>
           )}
 
           {success && (
-            <p className="text-xs text-quest-glow text-center bg-quest-glow/10 border border-quest-glow/20 rounded-xl px-4 py-2.5">
+            <p className="text-xs text-quest-glow/80 text-center border border-quest-glow/15 rounded-lg px-4 py-2.5">
               {success}
             </p>
           )}
@@ -161,28 +158,20 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-1 w-full py-3 rounded-xl bg-quest-accent text-white font-bold text-sm tracking-wide hover:bg-quest-accent/90 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-2 w-full py-3 rounded-lg bg-quest-accent text-white font-semibold text-xs tracking-widest uppercase hover:bg-quest-accent/85 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loading
-              ? "..."
+              ? "—"
               : mode === "login"
-              ? "LOGIN"
-              : "CREATE ACCOUNT"}
+              ? "Login"
+              : "Create Account"}
           </button>
         </form>
       </div>
 
-      <p className="mt-8 text-[10px] text-quest-muted text-center">
-        Your campus town adventure awaits.
+      <p className="mt-10 text-[10px] text-white/20 text-center tracking-widest uppercase">
+        Your campus town adventure awaits
       </p>
     </div>
-  );
-}
-
-function StarIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-    </svg>
   );
 }

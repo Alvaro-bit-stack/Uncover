@@ -95,50 +95,49 @@ export default function QuestsTab() {
     <div className="px-6 py-8 space-y-8">
 
       {/* Next Event Banner */}
-      <div className="rounded-2xl bg-gradient-to-br from-quest-card to-quest-dark border border-quest-glow/25 overflow-hidden">
+      <div className="rounded-xl border border-white/8 bg-quest-card overflow-hidden">
         <div className="px-5 pt-5 pb-4">
-          <div className="flex justify-end mb-3">
-            <span className="text-xs text-quest-muted bg-white/5 rounded-full px-3 py-0.5">
-              {daysUntilDrop === 0 ? "Today!" : `${daysUntilDrop} days away`}
+          <div className="flex items-start justify-between mb-3">
+            <p className="text-white font-semibold text-base leading-tight">
+              Campus Town Drop
+            </p>
+            <span className="text-[10px] text-quest-muted border border-white/8 rounded-full px-2.5 py-1 ml-3 shrink-0">
+              {daysUntilDrop === 0 ? "Today" : `${daysUntilDrop}d away`}
             </span>
           </div>
-          <p className="text-white font-bold text-lg leading-tight mb-2">
-            Campus Town Drop
-          </p>
           <p className="text-quest-muted text-sm leading-relaxed">
-            Bonus points are getting scattered across explored turf on the 15th. 
+            Bonus points scatter across explored turf on the 15th.
             The more ground you&apos;ve covered by then, the more loot lands in your zone.
-            Walk more now, cash in later.
           </p>
         </div>
-        <div className="border-t border-quest-border px-5 py-3 flex items-center gap-2">
-          <span className="text-xs text-quest-muted">Your coverage so far</span>
-          <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <div className="border-t border-white/6 px-5 py-3 flex items-center gap-3">
+          <span className="text-[10px] text-quest-muted uppercase tracking-widest">Coverage</span>
+          <div className="flex-1 h-px bg-white/8 overflow-visible relative">
             <div
-              className="h-full rounded-full bg-quest-glow/60"
+              className="absolute inset-y-0 left-0 h-px bg-quest-accent"
               style={{ width: `${Math.min(100, Math.round((q.weeklyKm / 5) * 100))}%` }}
             />
           </div>
-          <span className="text-xs text-quest-glow font-medium">{q.weeklyKm} km</span>
+          <span className="text-xs text-white/60">{q.weeklyKm} km</span>
         </div>
       </div>
 
       {/* Active quests */}
       <div>
-        <h2 className="text-lg font-bold text-white mb-4">Quests</h2>
-        <ul className="space-y-3">
+        <h2 className="text-[10px] text-quest-muted uppercase tracking-widest mb-4">Quests</h2>
+        <ul className="space-y-2">
           {quests.map((quest) => (
             <li key={quest.title}>
-              <div className="w-full rounded-xl border border-quest-border bg-quest-card p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <p className="font-medium text-white">{quest.title}</p>
-                  <p className={`text-sm ml-3 shrink-0 ${quest.done ? "text-quest-glow" : "text-quest-muted"}`}>
+              <div className="w-full rounded-lg border border-white/6 bg-quest-card p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <p className="text-sm text-white/90">{quest.title}</p>
+                  <p className={`text-xs ml-3 shrink-0 tabular-nums ${quest.done ? "text-quest-glow" : "text-quest-muted"}`}>
                     {quest.progress}
                   </p>
                 </div>
-                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-px bg-white/8 overflow-visible relative">
                   <div
-                    className={`h-full rounded-full transition-all ${quest.done ? "bg-quest-glow" : "bg-quest-accent"}`}
+                    className={`absolute inset-y-0 left-0 h-px transition-all ${quest.done ? "bg-quest-glow" : "bg-quest-accent"}`}
                     style={{ width: `${Math.min(100, (quest.value / quest.goal) * 100)}%` }}
                   />
                 </div>
@@ -149,45 +148,43 @@ export default function QuestsTab() {
       </div>
 
       {/* Monthly Tournament Registration */}
-      <div className="rounded-2xl border border-quest-border overflow-hidden">
-        <div className="bg-quest-card px-5 pt-5 pb-4 border-b border-quest-border">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-bold text-white tracking-wide text-base">MONTHLY TOURNAMENT</h3>
-          </div>
+      <div className="rounded-xl border border-white/8 overflow-hidden">
+        <div className="bg-quest-card px-5 pt-5 pb-4 border-b border-white/6">
+          <h3 className="text-xs font-semibold text-white tracking-widest uppercase mb-1">Monthly Tournament</h3>
           <p className="text-quest-muted text-sm">
             Compete against explorers across campus. Top walkers win exclusive rewards.
           </p>
         </div>
 
-        <div className="px-5 py-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl bg-white/5 px-3 py-2 text-center">
-              <p className="text-xs text-quest-muted mb-0.5">Next tournament</p>
-              <p className="text-sm font-semibold text-white">March 15, 2026</p>
+        <div className="bg-quest-card px-5 py-4 space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="border border-white/6 rounded-lg px-3 py-2.5 text-center">
+              <p className="text-[10px] text-quest-muted uppercase tracking-widest mb-1">Next round</p>
+              <p className="text-sm text-white">Mar 15, 2026</p>
             </div>
-            <div className="rounded-xl bg-white/5 px-3 py-2 text-center">
-              <p className="text-xs text-quest-muted mb-0.5">Registration fee</p>
-              <p className="text-sm font-bold text-quest-glow">$5.00</p>
+            <div className="border border-white/6 rounded-lg px-3 py-2.5 text-center">
+              <p className="text-[10px] text-quest-muted uppercase tracking-widest mb-1">Entry fee</p>
+              <p className="text-sm font-semibold text-quest-glow">$5.00</p>
             </div>
           </div>
 
           <ul className="space-y-1.5 text-sm text-quest-muted">
             <li className="flex items-center gap-2">
-              <span className="text-quest-glow text-xs">✦</span>
+              <span className="w-1 h-1 rounded-full bg-quest-accent/60 shrink-0" />
               Ranked by total km walked during the month
             </li>
             <li className="flex items-center gap-2">
-              <span className="text-quest-glow text-xs">✦</span>
-              Top 1 earns prize pool
+              <span className="w-1 h-1 rounded-full bg-quest-accent/60 shrink-0" />
+              Top 1 earns the prize pool
             </li>
           </ul>
 
           <button
             type="button"
-            className="w-full rounded-xl bg-quest-glow hover:bg-quest-glow/80 active:scale-95 transition-all text-quest-dark font-bold py-3 text-sm tracking-wider focus:outline-none focus-visible:ring-2 focus-visible:ring-quest-glow"
+            className="w-full rounded-lg border border-quest-glow/30 text-quest-glow font-semibold py-2.5 text-xs tracking-widest uppercase hover:bg-quest-glow/8 active:scale-[0.98] transition-all focus:outline-none"
             onClick={() => alert("Tournament registration coming soon!")}
           >
-            REGISTER FOR $5.00
+            Register — $5.00
           </button>
         </div>
       </div>

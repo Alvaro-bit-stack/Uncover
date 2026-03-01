@@ -94,15 +94,15 @@ export default function ProfileTab({ displayName, magicActive, onAvatarTap }: Pr
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="group flex flex-col items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-quest-glow rounded-lg"
+          className="group flex flex-col items-center gap-2 focus:outline-none"
           aria-label="Upload profile picture"
         >
           <div
-            className={`size-24 rounded-full overflow-hidden transition-all duration-300 ${
+            className={`size-24 rounded-full overflow-hidden ring-1 transition-all duration-300 ${
               magicActive
-                ? "shadow-[0_0_40px_rgba(251,191,36,0.6)] scale-110"
-                : "shadow-[0_0_24px_rgba(249,115,22,0.5)]"
-            } ring-3 ring-quest-accent`}
+                ? "ring-quest-glow scale-105"
+                : "ring-quest-accent/40"
+            }`}
           >
             {avatarUrl ? (
               <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
@@ -112,44 +112,42 @@ export default function ProfileTab({ displayName, magicActive, onAvatarTap }: Pr
               </div>
             )}
           </div>
-          <span className="text-2xl font-bold tracking-wider text-quest-glow">
+          <span className="text-2xl font-bold tracking-wider text-white">
             {displayName}
           </span>
-          <span className="flex items-center gap-1 text-sm text-quest-muted">
-            <StarIcon className="size-3" />
-            {avatarUrl ? "TAP TO CHANGE PHOTO" : "TAP TO ADD PHOTO"}
-            <StarIcon className="size-3" />
+          <span className="text-xs text-quest-muted tracking-widest">
+            {avatarUrl ? "Change photo" : "Add photo"}
           </span>
         </button>
       </section>
 
       {/* Level & XP */}
       <section className="px-6 pb-6">
-        <div className="flex justify-between text-sm mb-2">
-          <span className="text-white font-medium">LEVEL 7</span>
-          <span className="text-white">4820 / 5000 XP</span>
+        <div className="flex justify-between text-xs mb-2.5">
+          <span className="text-quest-muted uppercase tracking-widest">Level 7</span>
+          <span className="text-white/50">4820 / 5000 XP</span>
         </div>
-        <div className="h-3 rounded-full bg-quest-card overflow-hidden border border-quest-border">
+        <div className="h-1 rounded-full bg-white/8 overflow-hidden">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-quest-accent to-quest-glow transition-all"
+            className="h-full rounded-full bg-quest-accent transition-all"
             style={{ width: "96.4%" }}
           />
         </div>
       </section>
 
       {/* Stats grid */}
-      <section className="grid grid-cols-2 gap-3 px-6 pb-8">
+      <section className="grid grid-cols-2 gap-px bg-white/6 border border-white/6 rounded-xl overflow-hidden mx-6 mb-8">
         {[
-          { label: "KM WALKED", value: stats.km, unit: "km" },
-          { label: "TILES FOUND", value: String(stats.tiles), unit: "/120" },
-          { label: "SPOTS CLAIMED", value: String(stats.spots), unit: "spots" },
-          { label: "DAYS ACTIVE", value: String(stats.days), unit: "days" },
+          { label: "KM Walked", value: stats.km, unit: "km" },
+          { label: "Tiles Found", value: String(stats.tiles), unit: "/120" },
+          { label: "Spots Claimed", value: String(stats.spots), unit: "spots" },
+          { label: "Days Active", value: String(stats.days), unit: "days" },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-quest-border bg-quest-card p-4">
-            <p className="text-xs text-quest-muted uppercase tracking-wide mb-1">{stat.label}</p>
-            <p className="text-2xl font-bold text-quest-accent">
+          <div key={stat.label} className="bg-quest-card p-4">
+            <p className="text-[10px] text-quest-muted uppercase tracking-widest mb-1.5">{stat.label}</p>
+            <p className="text-2xl font-bold text-white">
               {stat.value}
-              <span className="text-sm font-normal text-white ml-1">{stat.unit}</span>
+              <span className="text-xs font-normal text-quest-muted ml-1">{stat.unit}</span>
             </p>
           </div>
         ))}
@@ -157,30 +155,30 @@ export default function ProfileTab({ displayName, magicActive, onAvatarTap }: Pr
 
       {/* Badges */}
       <section className="px-6 pb-8">
-        <h2 className="text-xs text-quest-muted uppercase tracking-wide mb-4">Badges</h2>
-        <div className="flex gap-4">
+        <h2 className="text-[10px] text-quest-muted uppercase tracking-widest mb-4">Badges</h2>
+        <div className="flex gap-3">
           {[
-            { name: "7-DAY STREAK", icon: "flame", earned: true },
-            { name: "EXPLORER", icon: "map", earned: true },
-            { name: "SPEED WALKER", icon: "walk", earned: false },
-            { name: "SPOT HUNTER", icon: "star", earned: true },
+            { name: "7-Day Streak", icon: "flame", earned: true },
+            { name: "Explorer", icon: "map", earned: true },
+            { name: "Speed Walker", icon: "walk", earned: false },
+            { name: "Spot Hunter", icon: "star", earned: true },
           ].map((badge) => (
             <button
               key={badge.name}
               type="button"
-              className="flex flex-col items-center gap-2 flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-quest-glow rounded-lg"
+              className="flex flex-col items-center gap-2 flex-1 focus:outline-none"
               title={badge.earned ? badge.name : `Locked: ${badge.name}`}
             >
               <div
-                className={`size-14 rounded-xl border border-quest-border flex items-center justify-center transition-colors ${
+                className={`size-13 rounded-lg border flex items-center justify-center transition-colors ${
                   badge.earned
-                    ? "bg-quest-card hover:border-quest-accent/50"
-                    : "bg-quest-card/50 opacity-50 cursor-not-allowed"
+                    ? "border-white/10 bg-quest-card"
+                    : "border-white/4 bg-quest-card opacity-30 cursor-not-allowed"
                 }`}
               >
                 <BadgeIcon type={badge.icon} earned={badge.earned} />
               </div>
-              <span className="text-[10px] text-white text-center leading-tight">{badge.name}</span>
+              <span className="text-[9px] text-white/50 text-center leading-tight">{badge.name}</span>
             </button>
           ))}
         </div>

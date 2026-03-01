@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --color-quest-dark: #1a1520;
-  --color-quest-card: #252030;
-  --color-quest-border: rgba(255, 255, 255, 0.12);
+  --color-quest-dark: #13111a;
+  --color-quest-card: #1e1b27;
+  --color-quest-border: rgba(255, 255, 255, 0.08);
   --color-quest-accent: #f97316;
-  --color-quest-glow: #fbbf24;
-  --color-quest-muted: #94a3b8;
+  --color-quest-glow: #e9a825;
+  --color-quest-muted: #7a8499;
 }
 
 body {
