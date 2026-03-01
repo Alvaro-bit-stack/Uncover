@@ -3,14 +3,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type L from "leaflet";
 
-const TILE_SIZE_M = 20;
+const STEP_DIST_M = 25;
 const DEG_PER_M_LAT = 1 / 111320;
 const degPerMLng = (lat: number) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
 const REVEAL_RADIUS_PX = 60;
 const FOG_COLOR = "rgba(30, 25, 40, 0.92)";
 const STORAGE_KEY = "walkmap-state";
 const AVATAR_KEY = "walkmap-avatar";
-
+const OSRM_BASE = "https://router.project-osrm.org/route/v1/foot";
+const OSRM_NEAREST = "https://router.project-osrm.org/nearest/v1/foot";
 interface SavedState {
   exploredPoints: { lat: number; lng: number }[];
   simPos: { lat: number; lng: number };
@@ -71,6 +72,7 @@ export default function WalkMap() {
   const simPosRef = useRef<{ lat: number; lng: number } | null>(null);
   const exploredPointsRef = useRef<{ lat: number; lng: number }[]>([]);
   const rafRef = useRef<number>(0);
+  const movingRef = useRef(false);
 
   const [ready, setReady] = useState(false);
   const [coordLabel, setCoordLabel] = useState("");
@@ -176,43 +178,92 @@ export default function WalkMap() {
     setCoordLabel(formatCoord(lat, lng));
   }
 
-  function handleSimMove(dir: "up" | "down" | "left" | "right") {
+  async function snapToRoad(lat: number, lng: number): Promise<{ lat: number; lng: number }> {
+    try {
+      const res = await fetch(`${OSRM_NEAREST}/${lng},${lat}?number=1`);
+      const data = await res.json();
+      if (data.code === "Ok" && data.waypoints?.[0]) {
+        const [sLng, sLat] = data.waypoints[0].location;
+        return { lat: sLat, lng: sLng };
+      }
+    } catch {}
+    return { lat, lng };
+  }
+
+  async function fetchRoute(
+    fromLat: number, fromLng: number,
+    toLat: number, toLng: number
+  ): Promise<[number, number][] | null> {
+    try {
+      const url = `${OSRM_BASE}/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data.code !== "Ok" || !data.routes?.[0]) return null;
+      const coords: [number, number][] = data.routes[0].geometry.coordinates;
+      return coords.map(([lng, lat]) => [lat, lng] as [number, number]);
+    } catch {
+      return null;
+    }
+  }
+
+  function moveAlongPoints(points: [number, number][]) {
+    let i = 0;
+    const body = document.getElementById("wm-avBody");
+    if (body) {
+      body.classList.add("walking");
+      if (!body.classList.contains("has-img")) body.textContent = "\u{1F6B6}";
+    }
+
+    function tick() {
+      if (i >= points.length) {
+        if (body) {
+          body.classList.remove("walking");
+          if (!body.classList.contains("has-img")) body.textContent = "\u{1F9D1}";
+        }
+        movingRef.current = false;
+        return;
+      }
+      const [lat, lng] = points[i];
+      simPosRef.current = { lat, lng };
+      moveMarkerTo(lat, lng);
+      i++;
+      setTimeout(tick, 60);
+    }
+
+    tick();
+  }
+
+  async function handleSimMove(dir: "up" | "down" | "left" | "right") {
+    if (movingRef.current) return;
     const prev = simPosRef.current;
     if (!prev) return;
 
-    const step = TILE_SIZE_M * 0.8;
-    let lat = prev.lat;
-    let lng = prev.lng;
-    if (dir === "up") lat += step * DEG_PER_M_LAT;
-    if (dir === "down") lat -= step * DEG_PER_M_LAT;
-    if (dir === "right") lng += step * degPerMLng(lat);
-    if (dir === "left") lng -= step * degPerMLng(lat);
+    movingRef.current = true;
 
     const headings = { up: 0, right: 90, down: 180, left: 270 } as const;
     setCompassDeg(headings[dir]);
 
-    const avDir = document.getElementById("wm-avDir");
-    if (avDir) {
-      avDir.style.transform = `rotate(${headings[dir]}deg)`;
-      avDir.classList.add("visible");
+    const avDirEl = document.getElementById("wm-avDir");
+    if (avDirEl) {
+      avDirEl.style.transform = `rotate(${headings[dir]}deg)`;
+      avDirEl.classList.add("visible");
     }
 
-    const body = document.getElementById("wm-avBody");
-    if (body) {
-      body.classList.add("walking");
-      if (!body.classList.contains("has-img")) {
-        body.textContent = "\u{1F6B6}";
-      }
-      setTimeout(() => {
-        body.classList.remove("walking");
-        if (!body.classList.contains("has-img")) {
-          body.textContent = "\u{1F9D1}";
-        }
-      }, 400);
-    }
+    let targetLat = prev.lat;
+    let targetLng = prev.lng;
+    if (dir === "up") targetLat += STEP_DIST_M * DEG_PER_M_LAT;
+    if (dir === "down") targetLat -= STEP_DIST_M * DEG_PER_M_LAT;
+    if (dir === "right") targetLng += STEP_DIST_M * degPerMLng(prev.lat);
+    if (dir === "left") targetLng -= STEP_DIST_M * degPerMLng(prev.lat);
 
-    simPosRef.current = { lat, lng };
-    moveMarkerTo(lat, lng);
+    const route = await fetchRoute(prev.lat, prev.lng, targetLat, targetLng);
+
+    if (route && route.length > 1) {
+      moveAlongPoints(route.slice(1));
+    } else {
+      movingRef.current = false;
+    }
   }
 
   // Auto-start: init map immediately, restore saved state if available
@@ -226,7 +277,10 @@ export default function WalkMap() {
       if (cancelled) return;
 
       const saved = loadState();
-      const startPos = saved?.simPos ?? { lat: 40.7448, lng: -74.0244 };
+      let startPos = saved?.simPos ?? { lat: 40.7448, lng: -74.0244 };
+      if (!saved) {
+        startPos = await snapToRoad(startPos.lat, startPos.lng);
+      }
 
       const map = Leaf.map(mapContainerRef.current, {
         zoomControl: false,
