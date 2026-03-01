@@ -15,7 +15,6 @@ type Tab = "map" | "quests" | "rank" | "me";
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("me");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [magicActive, setMagicActive] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -63,27 +62,8 @@ export default function Home() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [menuOpen]);
 
-  const handleAvatarTap = () => {
-    setMagicActive(true);
-    setTimeout(() => setMagicActive(false), 1500);
-  };
-
   return (
     <div className="min-h-screen bg-quest-dark text-white font-sans pb-24 relative">
-      {/* Magic burst overlay */}
-      {magicActive && (
-        <div
-          className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center"
-          aria-hidden
-        >
-          <div className="animate-magic-burst absolute size-64 rounded-full bg-quest-glow/30 scale-0" />
-          <div className="animate-magic-burst-delay absolute size-48 rounded-full bg-quest-accent/40 scale-0" />
-          <p className="relative z-10 text-quest-glow font-bold text-xl animate-bounce-in">
-            +50 XP!
-          </p>
-        </div>
-      )}
-
       {/* Header */}
       <header className="flex items-center justify-between px-5 pt-12 pb-4 relative">
         <span className="text-xs text-quest-muted tabular-nums tracking-wider">
@@ -135,11 +115,7 @@ export default function Home() {
 
       {/* Tab content */}
       {activeTab === "me" && (
-        <ProfileTab
-          displayName={displayName}
-          magicActive={magicActive}
-          onAvatarTap={handleAvatarTap}
-        />
+        <ProfileTab displayName={displayName} />
       )}
       {activeTab === "map" && <MapTab />}
       {activeTab === "quests" && <QuestsTab />}

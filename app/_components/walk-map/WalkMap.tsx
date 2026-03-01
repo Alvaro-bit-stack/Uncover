@@ -682,11 +682,18 @@ export default function WalkMap() {
         interactive: false,
       }).addTo(map);
 
-      let avatarPic: string | null = null;
-      try { avatarPic = localStorage.getItem(AVATAR_KEY); } catch {}
+      let avatarSeed: string | null = null;
+      try {
+        const raw = localStorage.getItem(AVATAR_KEY);
+        if (raw && !raw.startsWith("data:") && !raw.startsWith("blob:")) avatarSeed = raw;
+      } catch {}
 
-      const bodyContent = avatarPic
-        ? `<img src="${avatarPic}" class="wm-av-img" alt="" />`
+      const avatarSrc = avatarSeed
+        ? `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=transparent`
+        : null;
+
+      const bodyContent = avatarSrc
+        ? `<img src="${avatarSrc}" class="wm-av-img" alt="" />`
         : "\u{1F9D1}";
 
       const avatarHTML = `
@@ -695,7 +702,7 @@ export default function WalkMap() {
           <div class="wm-av-ripple"></div>
           <div class="wm-av-ripple"></div>
           <div class="wm-av-accuracy"></div>
-          <div class="wm-av-body ${avatarPic ? "has-img" : ""}" id="wm-avBody">${bodyContent}</div>
+          <div class="wm-av-body ${avatarSrc ? "has-img" : ""}" id="wm-avBody">${bodyContent}</div>
           <div class="wm-av-shadow"></div>
           <div class="wm-av-dir" id="wm-avDir"></div>
         </div>`;

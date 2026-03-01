@@ -53,18 +53,24 @@ function BadgeIcon({ type, earned }: { type: string; earned: boolean }) {
 
 interface ProfileTabProps {
   displayName: string;
-  magicActive: boolean;
-  onAvatarTap: () => void;
 }
 
-export default function ProfileTab({ displayName, magicActive, onAvatarTap }: ProfileTabProps) {
+function isValidSeed(v: string | null): v is string {
+  return !!v && !v.startsWith("data:") && !v.startsWith("blob:");
+}
+
+export default function ProfileTab({ displayName }: ProfileTabProps) {
   const [avatarSeed, setAvatarSeed] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [stats, setStats] = useState({ km: "0.0", tiles: 0, spots: 0, days: 0 });
 
   useEffect(() => {
-    try { setAvatarSeed(localStorage.getItem(AVATAR_KEY)); } catch {}
+    try {
+      const stored = localStorage.getItem(AVATAR_KEY);
+      if (isValidSeed(stored)) setAvatarSeed(stored);
+      else if (stored) localStorage.removeItem(AVATAR_KEY);
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -171,9 +177,7 @@ export default function ProfileTab({ displayName, magicActive, onAvatarTap }: Pr
           aria-label="Choose pixel art avatar"
         >
           <div
-            className={`size-24 rounded-full overflow-hidden ring-1 bg-quest-dark transition-all duration-300 ${
-              magicActive ? "ring-quest-glow scale-105" : "ring-quest-accent/40"
-            }`}
+            className="size-24 rounded-full overflow-hidden ring-1 ring-quest-accent/40 bg-quest-dark transition-all duration-300"
           >
             {avatarSeed ? (
               <img src={pixelUrl(avatarSeed)} alt={avatarSeed} className="w-full h-full" />
