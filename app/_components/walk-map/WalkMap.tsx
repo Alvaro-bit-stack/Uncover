@@ -6,7 +6,7 @@ import type L from "leaflet";
 const STEP_DIST_M = 25;
 const DEG_PER_M_LAT = 1 / 111320;
 const degPerMLng = (lat: number) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
-const REVEAL_RADIUS_M = 20;
+const REVEAL_RADIUS_M = 55; // large enough to clear blocks on both sides of the street, not just the path
 const FOG_COLOR = "rgba(30, 25, 40, 0.92)";
 const STORAGE_KEY = "walkmap-state";
 const AVATAR_KEY = "walkmap-avatar";
@@ -92,12 +92,11 @@ function buildZoneCheckpoints(zone: Zone): { lat: number; lng: number }[] {
 const MIN_EXPLORED_DIST_M = 15;
 
 /**
- * Demo-only fill: clear everything inside the zone. Boundary = zone bounds;
- * dense grid so the whole campus clears (we use a tight spacing and only skip
- * exact/near duplicates so the path doesn't block the fill).
+ * Demo-only fill: add a full grid of points inside the zone so fog clears everywhere.
+ * We do NOT skip points (no "too close" check) so the zone always fills completely;
+ * grid step is smaller than reveal radius so circles overlap and cover the whole area.
  */
-const DEMO_FILL_GRID_M = 6;   // dense grid so fog clears everywhere
-const DEMO_FILL_MIN_DIST_M = 3; // only skip if almost on top of existing point
+const DEMO_FILL_GRID_M = 8; // step smaller than REVEAL_RADIUS_M (20) so no gaps
 
 function fillZoneForDemo(
   zone: Zone,
@@ -110,10 +109,7 @@ function fillZoneForDemo(
 
   for (let lat = zone.south; lat <= zone.north; lat += dLat) {
     for (let lng = zone.west; lng <= zone.east; lng += dLng) {
-      const tooClose = [...explored, ...added].some(
-        (ep) => haversine(ep.lat, ep.lng, lat, lng) < DEMO_FILL_MIN_DIST_M
-      );
-      if (!tooClose) added.push({ lat, lng });
+      added.push({ lat, lng });
     }
   }
 
