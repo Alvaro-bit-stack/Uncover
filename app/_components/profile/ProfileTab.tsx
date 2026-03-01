@@ -1,8 +1,23 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 const AVATAR_KEY = "walkmap-avatar";
+
+// Pixel art seeds — shown in the picker
+const PIXEL_AVATARS = [
+  "Shadow","Blaze","Nova","Pixel","Ghost","Storm","Viper","Echo",
+  "Frost","Drift","Sage","Rune","Flux","Crypt","Dusk","Ember",
+  "Glitch","Hawk","Iris","Jinx","Kira","Lore","Mist","Neon",
+  "Orion","Prism","Quinn","Rift","Sable","Titan","Ultra","Volt",
+  "Wren","Xenon","Yuki","Zara","Ace","Byte","Comet","Delta",
+  "Edge","Faze","Grid","Haze","Icon","Jade","Knox","Lyra",
+  "Mars","Night","Opal","Punk","Quill","Rex","Sync","Thorn",
+];
+
+function pixelUrl(seed: string) {
+  return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`;
+}
 
 function StarIcon({ className }: { className?: string }) {
   return (
@@ -43,12 +58,13 @@ interface ProfileTabProps {
 }
 
 export default function ProfileTab({ displayName, magicActive, onAvatarTap }: ProfileTabProps) {
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarSeed, setAvatarSeed] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [stats, setStats] = useState({ km: "0.0", tiles: 0, spots: 0, days: 0 });
 
   useEffect(() => {
-    try { setAvatarUrl(localStorage.getItem(AVATAR_KEY)); } catch {}
+    try { setAvatarSeed(localStorage.getItem(AVATAR_KEY)); } catch {}
   }, []);
 
   useEffect(() => {
@@ -57,99 +73,152 @@ export default function ProfileTab({ displayName, magicActive, onAvatarTap }: Pr
       const state = raw ? JSON.parse(raw) : null;
       const km = state?.totalDist ? (state.totalDist / 1000).toFixed(1) : "0.0";
       const tiles = state?.exploredPoints ? (state.exploredPoints as unknown[]).length : 0;
-
       const achRaw = localStorage.getItem("walkmap-achievements");
       const spots = achRaw ? (JSON.parse(achRaw) as unknown[]).length : 0;
-
       const daysRaw = localStorage.getItem("walkmap-days");
       const days = daysRaw ? (JSON.parse(daysRaw) as unknown[]).length : 0;
-
       setStats({ km, tiles, spots, days });
     } catch {}
   }, []);
 
-  function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setAvatarUrl(dataUrl);
-      try { localStorage.setItem(AVATAR_KEY, dataUrl); } catch {}
-    };
-    reader.readAsDataURL(file);
+  function selectAvatar(seed: string) {
+    setAvatarSeed(seed);
+    try { localStorage.setItem(AVATAR_KEY, seed); } catch {}
+    setPickerOpen(false);
+    setSearch("");
   }
+
+  const filtered = PIXEL_AVATARS.filter((s) =>
+    s.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <>
+      {/* Avatar Picker Modal */}
+      {pickerOpen && (
+        <div className="fixed inset-0 z-200 flex flex-col">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => { setPickerOpen(false); setSearch(""); }}
+          />
+          {/* Sheet */}
+          <div className="relative mt-auto rounded-t-2xl bg-quest-card border-t border-white/8 flex flex-col max-h-[75vh]">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-8 h-1 rounded-full bg-white/15" />
+            </div>
+            <div className="px-5 pt-2 pb-3 flex items-center justify-between">
+              <p className="text-xs font-semibold tracking-widest uppercase text-white/70">Choose Avatar</p>
+              <button
+                type="button"
+                onClick={() => { setPickerOpen(false); setSearch(""); }}
+                className="text-white/30 hover:text-white/70 text-lg leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            {/* Search */}
+            <div className="px-5 pb-3">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search avatars..."
+                autoFocus
+                className="w-full bg-quest-dark border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-quest-accent/40 transition-colors"
+              />
+            </div>
+            {/* Grid */}
+            <div className="overflow-y-auto px-5 pb-6">
+              {filtered.length === 0 ? (
+                <p className="text-sm text-quest-muted text-center py-8">No avatars found</p>
+              ) : (
+                <div className="grid grid-cols-5 gap-3">
+                  {filtered.map((seed) => (
+                    <button
+                      key={seed}
+                      type="button"
+                      onClick={() => selectAvatar(seed)}
+                      className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
+                        avatarSeed === seed
+                          ? "border-quest-accent bg-quest-accent/10"
+                          : "border-white/6 hover:border-white/20 bg-quest-dark/50"
+                      }`}
+                    >
+                      <img
+                        src={pixelUrl(seed)}
+                        alt={seed}
+                        className="size-12"
+                        loading="lazy"
+                      />
+                      <span className="text-[9px] text-white/40 truncate w-full text-center">{seed}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Profile */}
       <section className="flex flex-col items-center px-6 pt-4 pb-6">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleAvatarUpload}
-        />
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="group flex flex-col items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-quest-glow rounded-lg"
-          aria-label="Upload profile picture"
+          onClick={() => setPickerOpen(true)}
+          className="flex flex-col items-center gap-2 focus:outline-none"
+          aria-label="Choose pixel art avatar"
         >
           <div
-            className={`size-24 rounded-full overflow-hidden transition-all duration-300 ${
-              magicActive
-                ? "shadow-[0_0_40px_rgba(251,191,36,0.6)] scale-110"
-                : "shadow-[0_0_24px_rgba(249,115,22,0.5)]"
-            } ring-3 ring-quest-accent`}
+            className={`size-24 rounded-full overflow-hidden ring-1 bg-quest-dark transition-all duration-300 ${
+              magicActive ? "ring-quest-glow scale-105" : "ring-quest-accent/40"
+            }`}
           >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+            {avatarSeed ? (
+              <img src={pixelUrl(avatarSeed)} alt={avatarSeed} className="w-full h-full" />
             ) : (
-              <div className="w-full h-full bg-quest-accent/90 flex items-center justify-center text-4xl">
-                {"\u{1F4F7}"}
+              <div className="w-full h-full flex items-center justify-center text-3xl">
+                🎮
               </div>
             )}
           </div>
-          <span className="text-2xl font-bold tracking-wider text-quest-glow">
+          <span className="text-2xl font-bold tracking-wider text-white">
             {displayName}
           </span>
-          <span className="flex items-center gap-1 text-sm text-quest-muted">
-            <StarIcon className="size-3" />
-            {avatarUrl ? "TAP TO CHANGE PHOTO" : "TAP TO ADD PHOTO"}
-            <StarIcon className="size-3" />
+          <span className="text-xs text-quest-muted tracking-widest">
+            {avatarSeed ? `${avatarSeed} · Change` : "Pick your avatar"}
           </span>
         </button>
       </section>
 
       {/* Level & XP */}
       <section className="px-6 pb-6">
-        <div className="flex justify-between text-sm mb-2">
-          <span className="text-white font-medium">LEVEL 7</span>
-          <span className="text-white">4820 / 5000 XP</span>
+        <div className="flex justify-between text-xs mb-2.5">
+          <span className="text-quest-muted uppercase tracking-widest">Level 7</span>
+          <span className="text-white/50">4820 / 5000 XP</span>
         </div>
-        <div className="h-3 rounded-full bg-quest-card overflow-hidden border border-quest-border">
+        <div className="h-1 rounded-full bg-white/8 overflow-hidden">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-quest-accent to-quest-glow transition-all"
+            className="h-full rounded-full bg-quest-accent transition-all"
             style={{ width: "96.4%" }}
           />
         </div>
       </section>
 
       {/* Stats grid */}
-      <section className="grid grid-cols-2 gap-3 px-6 pb-8">
+      <section className="grid grid-cols-2 gap-px bg-white/6 border border-white/6 rounded-xl overflow-hidden mx-6 mb-8">
         {[
-          { label: "KM WALKED", value: stats.km, unit: "km" },
-          { label: "TILES FOUND", value: String(stats.tiles), unit: "/120" },
-          { label: "SPOTS CLAIMED", value: String(stats.spots), unit: "spots" },
-          { label: "DAYS ACTIVE", value: String(stats.days), unit: "days" },
+          { label: "KM Walked", value: stats.km, unit: "km" },
+          { label: "Tiles Found", value: String(stats.tiles), unit: "/120" },
+          { label: "Spots Claimed", value: String(stats.spots), unit: "spots" },
+          { label: "Days Active", value: String(stats.days), unit: "days" },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-quest-border bg-quest-card p-4">
-            <p className="text-xs text-quest-muted uppercase tracking-wide mb-1">{stat.label}</p>
-            <p className="text-2xl font-bold text-quest-accent">
+          <div key={stat.label} className="bg-quest-card p-4">
+            <p className="text-[10px] text-quest-muted uppercase tracking-widest mb-1.5">{stat.label}</p>
+            <p className="text-2xl font-bold text-white">
               {stat.value}
-              <span className="text-sm font-normal text-white ml-1">{stat.unit}</span>
+              <span className="text-xs font-normal text-quest-muted ml-1">{stat.unit}</span>
             </p>
           </div>
         ))}
@@ -157,30 +226,30 @@ export default function ProfileTab({ displayName, magicActive, onAvatarTap }: Pr
 
       {/* Badges */}
       <section className="px-6 pb-8">
-        <h2 className="text-xs text-quest-muted uppercase tracking-wide mb-4">Badges</h2>
-        <div className="flex gap-4">
+        <h2 className="text-[10px] text-quest-muted uppercase tracking-widest mb-4">Badges</h2>
+        <div className="flex gap-3">
           {[
-            { name: "7-DAY STREAK", icon: "flame", earned: true },
-            { name: "EXPLORER", icon: "map", earned: true },
-            { name: "SPEED WALKER", icon: "walk", earned: false },
-            { name: "SPOT HUNTER", icon: "star", earned: true },
+            { name: "7-Day Streak", icon: "flame", earned: true },
+            { name: "Explorer", icon: "map", earned: true },
+            { name: "Speed Walker", icon: "walk", earned: false },
+            { name: "Spot Hunter", icon: "star", earned: true },
           ].map((badge) => (
             <button
               key={badge.name}
               type="button"
-              className="flex flex-col items-center gap-2 flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-quest-glow rounded-lg"
+              className="flex flex-col items-center gap-2 flex-1 focus:outline-none"
               title={badge.earned ? badge.name : `Locked: ${badge.name}`}
             >
               <div
-                className={`size-14 rounded-xl border border-quest-border flex items-center justify-center transition-colors ${
+                className={`size-13 rounded-lg border flex items-center justify-center transition-colors ${
                   badge.earned
-                    ? "bg-quest-card hover:border-quest-accent/50"
-                    : "bg-quest-card/50 opacity-50 cursor-not-allowed"
+                    ? "border-white/10 bg-quest-card"
+                    : "border-white/4 bg-quest-card opacity-30 cursor-not-allowed"
                 }`}
               >
                 <BadgeIcon type={badge.icon} earned={badge.earned} />
               </div>
-              <span className="text-[10px] text-white text-center leading-tight">{badge.name}</span>
+              <span className="text-[9px] text-white/50 text-center leading-tight">{badge.name}</span>
             </button>
           ))}
         </div>

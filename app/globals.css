@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --color-quest-dark: #1a1520;
-  --color-quest-card: #252030;
-  --color-quest-border: rgba(255, 255, 255, 0.12);
+  --color-quest-dark: #13111a;
+  --color-quest-card: #1e1b27;
+  --color-quest-border: rgba(255, 255, 255, 0.08);
   --color-quest-accent: #f97316;
-  --color-quest-glow: #fbbf24;
-  --color-quest-muted: #94a3b8;
+  --color-quest-glow: #e9a825;
+  --color-quest-muted: #7a8499;
 }
 
 body {
@@ -283,7 +283,7 @@ body {
 
 /* ─── DEMO WALK ─── */
 .wm-demo-btn {
-  position: absolute; left: 20px; bottom: 230px; z-index: 800;
+  position: absolute; left: 10px; bottom: 315px; z-index: 800;
   display: flex; align-items: center; gap: 6px;
   background: linear-gradient(135deg, rgba(255,183,3,0.15), rgba(255,77,109,0.15));
   backdrop-filter: blur(16px);

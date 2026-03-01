@@ -86,12 +86,11 @@ export default function Home() {
 
       {/* Header */}
       <header className="flex items-center justify-between px-5 pt-12 pb-4 relative">
-        <span className="text-sm text-quest-muted tabular-nums">
+        <span className="text-xs text-quest-muted tabular-nums tracking-wider">
           {currentTime || "9:41"}
         </span>
-        <h1 className="flex items-center gap-1.5 text-quest-glow font-bold text-sm tracking-wider">
-          <StarIcon className="size-4" />
-          UNCOVER
+        <h1 className="text-quest-glow font-bold text-sm tracking-[0.25em] uppercase">
+          Uncover
         </h1>
         <div className="relative" ref={menuRef}>
           <button
@@ -104,18 +103,18 @@ export default function Home() {
             <MenuIcon className="size-6" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-quest-border bg-quest-card py-2 shadow-xl z-50">
+            <div className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-white/8 bg-quest-card py-1.5 shadow-2xl z-50">
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
-                className="w-full px-4 py-2 text-left text-sm text-white hover:bg-white/5 transition-colors"
+                className="w-full px-4 py-2 text-left text-xs tracking-wide text-white/70 hover:text-white hover:bg-white/4 transition-colors"
               >
                 Settings
               </button>
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
-                className="w-full px-4 py-2 text-left text-sm text-white hover:bg-white/5 transition-colors"
+                className="w-full px-4 py-2 text-left text-xs tracking-wide text-white/70 hover:text-white hover:bg-white/4 transition-colors"
               >
                 Edit profile
               </button>
@@ -125,7 +124,7 @@ export default function Home() {
                   setMenuOpen(false);
                   handleSignOut();
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-quest-muted hover:bg-white/5 hover:text-white transition-colors border-t border-quest-border mt-1 pt-2"
+                className="w-full px-4 py-2 text-left text-xs tracking-wide text-quest-muted hover:text-white hover:bg-white/4 transition-colors border-t border-white/6 mt-1 pt-2"
               >
                 Sign out
               </button>
@@ -148,7 +147,7 @@ export default function Home() {
 
       {/* Bottom nav */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-[60] rounded-t-2xl bg-quest-card border-t border-quest-border px-4 py-3 flex justify-around items-center"
+        className="fixed bottom-0 left-0 right-0 z-60 bg-quest-card border-t border-white/8 px-4 py-3 flex justify-around items-center"
         aria-label="Main navigation"
       >
         <NavItem icon="map" label="MAP" active={activeTab === "map"} onClick={() => setActiveTab("map")} />
@@ -182,12 +181,15 @@ function NavItem({ icon, label, active, onClick }: { icon: string; label: string
       type="button"
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-colors border-b-2 border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-quest-glow ${
+      className={`relative flex flex-col items-center gap-1 py-1 px-3 transition-colors focus:outline-none ${
         active
-          ? "bg-quest-glow/15 text-quest-glow border-quest-glow shadow-[0_0_12px_rgba(251,191,36,0.3)]"
-          : "text-quest-muted hover:text-white"
+          ? "text-quest-glow"
+          : "text-quest-muted hover:text-white/70"
       }`}
     >
+      {active && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 w-5 h-px bg-quest-glow" />
+      )}
       {icon === "map" && <MapNavIcon />}
       {icon === "quests" && <QuestsNavIcon />}
       {icon === "rank" && <RankNavIcon />}
