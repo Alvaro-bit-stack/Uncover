@@ -13,6 +13,7 @@ const AVATAR_KEY = "walkmap-avatar";
 const OSRM_BASE = "https://router.project-osrm.org/route/v1/foot";
 const OSRM_NEAREST = "https://router.project-osrm.org/nearest/v1/foot";
 const ACHIEVEMENTS_KEY = "walkmap-achievements";
+const DAYS_KEY = "walkmap-days";
 const EXPLORE_HIT_RADIUS_M = 30;
 
 interface Zone {
@@ -115,6 +116,18 @@ function loadAchievements(): Set<string> {
 
 function saveAchievements(set: Set<string>) {
   try { localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify([...set])); } catch {}
+}
+
+function trackActiveDay() {
+  try {
+    const raw = localStorage.getItem(DAYS_KEY);
+    const days: string[] = raw ? JSON.parse(raw) : [];
+    const today = new Date().toISOString().slice(0, 10);
+    if (!days.includes(today)) {
+      days.push(today);
+      localStorage.setItem(DAYS_KEY, JSON.stringify(days));
+    }
+  } catch {}
 }
 
 interface SavedState {
@@ -290,6 +303,7 @@ export default function WalkMap() {
     persistState();
     scheduleRedraw();
     checkZoneAchievements();
+    trackActiveDay();
   }
 
   function moveMarkerTo(lat: number, lng: number) {
