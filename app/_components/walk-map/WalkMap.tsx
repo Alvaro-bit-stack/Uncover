@@ -471,11 +471,28 @@ export default function WalkMap() {
 
     showToast("\u{1F3AC} Building route...");
 
-    const fullPath: [number, number][] = [waypoints[0]];
+    const explored = exploredPointsRef.current;
+    const isExplored = (lat: number, lng: number) =>
+      explored.some((ep) => haversine(ep.lat, ep.lng, lat, lng) < 15);
 
-    for (let w = 0; w < waypoints.length - 1; w++) {
-      const [fromLat, fromLng] = waypoints[w];
-      const [toLat, toLng] = waypoints[w + 1];
+    // Filter to only waypoints not yet explored
+    const needed = waypoints.filter(([lat, lng]) => !isExplored(lat, lng));
+    if (needed.length === 0) {
+      showToast("\u2705 Campus already fully explored!");
+      movingRef.current = false;
+      return;
+    }
+
+    // Route from current position to first needed waypoint, then through the rest
+    const cur = simPosRef.current ?? { lat: needed[0][0], lng: needed[0][1] };
+    const route0 = await fetchRoute(cur.lat, cur.lng, needed[0][0], needed[0][1]);
+    const fullPath: [number, number][] = route0 && route0.length > 1
+      ? [...route0]
+      : [[cur.lat, cur.lng], needed[0]];
+
+    for (let w = 0; w < needed.length - 1; w++) {
+      const [fromLat, fromLng] = needed[w];
+      const [toLat, toLng] = needed[w + 1];
       const route = await fetchRoute(fromLat, fromLng, toLat, toLng);
       if (route && route.length > 1) {
         fullPath.push(...route.slice(1));

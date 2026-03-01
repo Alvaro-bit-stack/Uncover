@@ -57,6 +57,11 @@ export default function Leaderboard({
       </div>
 
       <div className="rounded-xl border border-quest-border bg-quest-card overflow-hidden">
+        {data.rows.length === 0 && (
+          <div className="px-4 py-8 text-center text-quest-muted text-sm">
+            No explorers yet. Start walking to appear here!
+          </div>
+        )}
         {data.rows.map((row) => {
           const highlight = meUserId && row.userId === meUserId;
           return (
@@ -73,7 +78,7 @@ export default function Leaderboard({
                 {row.name}
               </span>
               <span className="text-quest-accent font-bold tabular-nums">
-                {formatCompactNumber(row.xp)} XP
+                {formatCompactNumber(row.xp)} steps
               </span>
             </div>
           );
