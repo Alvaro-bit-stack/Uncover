@@ -297,6 +297,40 @@ body {
 .wm-demo-btn:active { transform: scale(0.93); border-color: rgba(255,183,3,0.6); }
 .wm-demo-icon { font-size: 16px; }
 
+/* ─── TRACK (real GPS) ─── */
+.wm-track-btn {
+  position: absolute; left: 10px; bottom: 268px; z-index: 800;
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(13,13,20,0.85); backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px; padding: 8px 14px;
+  color: rgba(255,255,255,0.8); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.3px; cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.wm-track-btn:hover { color: #f0f0f8; background: rgba(255,255,255,0.06); }
+.wm-track-btn-active {
+  border-color: rgba(82, 199, 89, 0.5);
+  color: #52c759;
+}
+.wm-track-btn-active:hover { background: rgba(82, 199, 89, 0.08); }
+.wm-track-icon { font-size: 14px; }
+
+/* ─── RESET MAP ─── */
+.wm-reset-btn {
+  position: absolute; left: 10px; bottom: 218px; z-index: 800;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(13,13,20,0.85); backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7); font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  transition: transform 0.15s, color 0.15s, background 0.15s;
+}
+.wm-reset-btn:hover { color: #f0f0f8; background: rgba(255,255,255,0.08); }
+.wm-reset-btn:active { transform: scale(0.92); }
+
 /* ─── RECENTER ─── */
 .wm-recenter-btn {
   position: absolute; right: 20px; bottom: 230px; z-index: 800;

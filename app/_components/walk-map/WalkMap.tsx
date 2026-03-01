@@ -258,6 +258,7 @@ export default function WalkMap() {
   const [toast, setToast] = useState<string | null>(null);
   const [tilesExplored, setTilesExplored] = useState(0);
   const [achievement, setAchievement] = useState<{ emoji: string; name: string } | null>(null);
+  const [realTrackingOn, setRealTrackingOn] = useState(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const achievementTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -783,7 +784,7 @@ export default function WalkMap() {
         positionsRef.current = [[startPos.lat, startPos.lng]];
         trailRef.current.setLatLngs([[startPos.lat, startPos.lng]]);
         addExploredPoint(startPos.lat, startPos.lng);
-        showToast("\u{1F3AE} Use arrows to walk around");
+        showToast("\u{1F3E0} Try Demo Walk or enable tracking");
       }
 
       setCoordLabel(formatCoord(startPos.lat, startPos.lng));
@@ -805,6 +806,41 @@ export default function WalkMap() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Watch real-world position and update map when user walks (only when demo isn't running).
+  useEffect(() => {
+    if (!ready || typeof navigator === "undefined" || !navigator.geolocation) return;
+
+    const options: PositionOptions = {
+      enableHighAccuracy: true,
+      maximumAge: 2000,
+      timeout: 10000,
+    };
+
+    let watchId: number | null = null;
+
+    function onPosition(pos: GeolocationPosition) {
+      if (movingRef.current) return;
+      const { latitude, longitude } = pos.coords;
+      moveMarkerTo(latitude, longitude);
+    }
+
+    function onError(err: GeolocationPositionError) {
+      const msg =
+        err.code === 1
+          ? "Location access denied — enable it in browser or device settings to track your walk."
+          : err.code === 2
+            ? "Location unavailable — check GPS / network."
+            : "Location request timed out.";
+      showToast(msg);
+    }
+
+    watchId = navigator.geolocation.watchPosition(onPosition, onError, options);
+
+    return () => {
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [ready]);
+
   function handleRecenter() {
     isFollowingRef.current = true;
     const last = lastPosRef.current;
@@ -822,6 +858,31 @@ export default function WalkMap() {
     bearingRef.current = 0;
     setBearing(0);
     updateMarkerRotation(0);
+  }
+
+  const DEFAULT_START = { lat: 40.7448, lng: -74.0244 };
+
+  function handleResetMap() {
+    if (movingRef.current) return;
+    exploredPointsRef.current = [];
+    positionsRef.current = [[DEFAULT_START.lat, DEFAULT_START.lng]];
+    stepsRef.current = 0;
+    totalDistRef.current = 0;
+    simPosRef.current = DEFAULT_START;
+    lastPosRef.current = DEFAULT_START;
+    setSteps(0);
+    setDistance("0m");
+    setTilesExplored(0);
+    setAchievement(null);
+    if (achievementTimerRef.current) clearTimeout(achievementTimerRef.current);
+    achievedRef.current.delete("stevens");
+    saveAchievements(achievedRef.current);
+    if (markerRef.current) markerRef.current.setLatLng([DEFAULT_START.lat, DEFAULT_START.lng]);
+    if (trailRef.current) trailRef.current.setLatLngs([[DEFAULT_START.lat, DEFAULT_START.lng]]);
+    setCoordLabel(formatCoord(DEFAULT_START.lat, DEFAULT_START.lng));
+    persistState();
+    scheduleRedraw();
+    showToast("\u21BB Map & demo reset");
   }
 
   function getTouchAngle(t1: React.Touch, t2: React.Touch) {
@@ -913,7 +974,7 @@ export default function WalkMap() {
             {"\u2295"}
           </button>
 
-          {/* Demo Walk */}
+          {/* Simulation: Demo Walk */}
           <button
             className="wm-demo-btn"
             onClick={handleDemoWalk}
@@ -921,6 +982,31 @@ export default function WalkMap() {
           >
             <span className="wm-demo-icon">{"\u{1F3AC}"}</span>
             Demo Walk
+          </button>
+
+          {/* Real tracking: Track my walk */}
+          <button
+            className={`wm-track-btn ${realTrackingOn ? "wm-track-btn-active" : ""}`}
+            onClick={() => {
+              setRealTrackingOn((on) => !on);
+              if (!realTrackingOn) showToast("\u{1F4CD} Tracking enabled — allow location when prompted.");
+              else showToast("\u{1F4CD} Tracking paused.");
+            }}
+            type="button"
+            title={realTrackingOn ? "Stop tracking" : "Track my walk (GPS)"}
+          >
+            <span className="wm-track-icon">{"\u{1F4CD}"}</span>
+            {realTrackingOn ? "Tracking" : "Track"}
+          </button>
+
+          {/* Reset map & demo */}
+          <button
+            className="wm-reset-btn"
+            onClick={handleResetMap}
+            type="button"
+            title="Reset map and demo"
+          >
+            <span aria-hidden>{"\u21BB"}</span>
           </button>
 
           {/* Stats Strip */}
