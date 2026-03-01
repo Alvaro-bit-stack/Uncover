@@ -89,6 +89,38 @@ function buildZoneCheckpoints(zone: Zone): { lat: number; lng: number }[] {
   return pts;
 }
 
+const MIN_EXPLORED_DIST_M = 15;
+
+/**
+ * Demo-only fill: clear everything inside the zone. Boundary = zone bounds;
+ * dense grid so the whole campus clears (we use a tight spacing and only skip
+ * exact/near duplicates so the path doesn't block the fill).
+ */
+const DEMO_FILL_GRID_M = 6;   // dense grid so fog clears everywhere
+const DEMO_FILL_MIN_DIST_M = 3; // only skip if almost on top of existing point
+
+function fillZoneForDemo(
+  zone: Zone,
+  explored: { lat: number; lng: number }[]
+): number {
+  const added: { lat: number; lng: number }[] = [];
+  const midLat = (zone.south + zone.north) / 2;
+  const dLat = DEMO_FILL_GRID_M * DEG_PER_M_LAT;
+  const dLng = DEMO_FILL_GRID_M * degPerMLng(midLat);
+
+  for (let lat = zone.south; lat <= zone.north; lat += dLat) {
+    for (let lng = zone.west; lng <= zone.east; lng += dLng) {
+      const tooClose = [...explored, ...added].some(
+        (ep) => haversine(ep.lat, ep.lng, lat, lng) < DEMO_FILL_MIN_DIST_M
+      );
+      if (!tooClose) added.push({ lat, lng });
+    }
+  }
+
+  explored.push(...added);
+  return added.length;
+}
+
 function playAchievementSound() {
   try {
     const ctx = new AudioContext();
@@ -554,8 +586,6 @@ export default function WalkMap() {
       if (!body.classList.contains("has-img")) body.textContent = "\u{1F6B6}";
     }
 
-    const hadStevens = achievedRef.current.has("stevens");
-
     function tick() {
       // Fast-forward past cells we already walked
       while (i < fullPath.length) {
@@ -572,20 +602,25 @@ export default function WalkMap() {
         movingRef.current = false;
         isFollowingRef.current = savedFollow;
 
-        // Final achievement check — catches cases where no *new* explored
-        // points were added (all already existed) so the per-point check
-        // inside addExploredPoint never ran.
         checkZoneAchievements();
 
-        if (!hadStevens && achievedRef.current.has("stevens")) {
-          // Achievement was just earned during this walk — banner is
-          // already showing from checkZoneAchievements, extend its
-          // display time so the user sees it after the walk ends.
-          if (achievementTimerRef.current) clearTimeout(achievementTimerRef.current);
-          achievementTimerRef.current = setTimeout(() => setAchievement(null), 8000);
-        } else if (!achievedRef.current.has("stevens")) {
-          showToast("\u{1F3C3} Demo complete! Keep exploring to discover Stevens.");
+        // Demo fill: clear everything inside the zone (boundary = zone); everything in between gets cleared too.
+        const stevensZone = ZONES.find((z) => z.id === "stevens");
+        if (stevensZone) {
+          fillZoneForDemo(stevensZone, exploredPointsRef.current);
+          persistState();
+          scheduleRedraw();
+          setTilesExplored(exploredPointsRef.current.length);
         }
+        if (!achievedRef.current.has("stevens")) {
+          achievedRef.current.add("stevens");
+          saveAchievements(achievedRef.current);
+        }
+        playAchievementSound();
+        setAchievement({ emoji: stevensZone?.emoji ?? "\u{1F393}", name: stevensZone?.name ?? "Stevens Institute of Technology" });
+        if (achievementTimerRef.current) clearTimeout(achievementTimerRef.current);
+        achievementTimerRef.current = setTimeout(() => setAchievement(null), 8000);
+        showToast("\u{1F389} Congratulations! You've discovered Stevens Institute of Technology!");
         return;
       }
 
