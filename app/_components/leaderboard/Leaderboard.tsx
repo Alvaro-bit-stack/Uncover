@@ -12,90 +12,123 @@ type Props = {
   onViewUser?: (userId: string, name: string) => void;
 };
 
-const PillBtn = (props: { label: string; active: boolean; press: () => void }) => (
-  <button
-    type="button"
-    onClick={props.press}
-    className={
-      "text-xs px-3 py-1 rounded-full border transition-colors " +
-      (props.active
-        ? "border-quest-glow text-quest-glow bg-quest-glow/10"
-        : "border-quest-border text-quest-muted hover:text-white hover:border-quest-accent/50")
-    }
-  >
-    {props.label}
-  </button>
-);
+const PERIODS: { key: LeaderboardPeriod; label: string }[] = [
+  { key: "daily", label: "Day" },
+  { key: "weekly", label: "Week" },
+  { key: "all", label: "All" },
+];
 
-const ChevronIcon = () => (
-  <svg
-    width={16}
-    height={16}
-    className="text-quest-muted shrink-0"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={2}
-  >
-    <path d="M9 5l7 7-7 7" />
-  </svg>
-);
-
-export default function Leaderboard({
-  data,
-  meUserId,
-  period,
-  onChangePeriod,
-  onViewUser,
-}: Props) {
+export default function Leaderboard({ data, meUserId, period, onChangePeriod, onViewUser }: Props) {
   const meRank = useMemo(() => {
     if (!meUserId) return null;
-    const row = data.rows.find((r) => r.userId === meUserId);
-    return row?.rank ?? null;
+    return data.rows.find((r) => r.userId === meUserId)?.rank ?? null;
   }, [data.rows, meUserId]);
 
   return (
-    <div className="px-6 py-8">
-      <div className="flex items-end justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-bold text-white">Leaderboard</h2>
-          <p className="text-xs text-quest-muted mt-1">
-            {"Updated " + new Date(data.updatedAtISO).toLocaleString() + (meRank != null ? " \u2022 You are #" + meRank : "")}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <PillBtn label="Day" active={period === "daily"} press={() => onChangePeriod("daily")} />
-          <PillBtn label="Week" active={period === "weekly"} press={() => onChangePeriod("weekly")} />
-          <PillBtn label="All" active={period === "all"} press={() => onChangePeriod("all")} />
+    <div className="flex flex-col min-h-full">
+      {/* Header */}
+      <div className="px-6 pt-8 pb-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-2xl font-black text-white tracking-tight leading-none">RANKINGS</h2>
+            {meRank != null && (
+              <p className="text-[11px] text-quest-muted mt-1.5 tracking-widest uppercase">
+                Your position — <span className="text-white font-bold">#{meRank}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Period tabs */}
+          <div className="flex items-center gap-1 mt-1">
+            {PERIODS.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onChangePeriod(key)}
+                className={`text-[11px] font-bold tracking-widest uppercase px-3 py-1.5 rounded transition-all ${
+                  period === key
+                    ? "text-quest-dark bg-white"
+                    : "text-white/30 hover:text-white/60"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-quest-border bg-quest-card overflow-hidden">
+      {/* List */}
+      <div className="flex-1 px-4">
         {data.rows.map((row) => {
           const isMe = meUserId != null && row.userId === meUserId;
+          const isFirst = row.rank === 1;
+          const isTop3 = row.rank <= 3;
+
           return (
             <button
               key={row.userId}
               type="button"
               onClick={() => onViewUser?.(row.userId, row.name)}
-              className={
-                "w-full flex items-center justify-between px-4 py-3 border-b border-quest-border last:border-0 text-left transition-colors hover:bg-white/5" +
-                (isMe ? " bg-quest-glow/10" : "")
-              }
+              className={`w-full flex items-center gap-4 px-4 rounded-xl mb-1 text-left transition-all active:scale-[0.98] ${
+                isFirst
+                  ? "py-5 bg-white"
+                  : isTop3
+                  ? "py-4 bg-quest-card"
+                  : "py-3 bg-transparent"
+              }`}
             >
-              <span className="text-quest-muted w-10 tabular-nums">{"#" + row.rank}</span>
-              <span className="font-medium text-white flex-1 truncate">{row.name}</span>
-              <span className="text-quest-accent font-bold tabular-nums mr-3">
-                {formatCompactNumber(row.xp) + " XP"}
+              {/* Rank */}
+              <span
+                className={`tabular-nums font-black leading-none shrink-0 ${
+                  isFirst
+                    ? "text-3xl text-quest-dark"
+                    : isTop3
+                    ? "text-xl text-white/40"
+                    : "text-sm text-white/20 w-6 text-center"
+                }`}
+              >
+                {isFirst ? "01" : `${row.rank < 10 ? "0" : ""}${row.rank}`}
               </span>
-              <ChevronIcon />
+
+              {/* Name */}
+              <span
+                className={`flex-1 truncate font-bold tracking-tight ${
+                  isFirst
+                    ? "text-lg text-quest-dark"
+                    : isTop3
+                    ? "text-base text-white"
+                    : "text-sm text-white/60"
+                } ${isMe && !isFirst ? "text-quest-accent" : ""}`}
+              >
+                {row.name}
+                {isMe && (
+                  <span className={`ml-2 text-[9px] font-black tracking-widest uppercase ${isFirst ? "text-quest-dark/40" : "text-quest-accent/50"}`}>
+                    YOU
+                  </span>
+                )}
+              </span>
+
+              {/* XP */}
+              <span
+                className={`tabular-nums font-black shrink-0 ${
+                  isFirst
+                    ? "text-base text-quest-dark"
+                    : isTop3
+                    ? "text-sm text-white/70"
+                    : "text-xs text-white/25"
+                }`}
+              >
+                {formatCompactNumber(row.xp)}
+                <span className={`ml-1 text-[9px] font-bold ${isFirst ? "text-quest-dark/50" : "text-white/20"}`}>XP</span>
+              </span>
             </button>
           );
         })}
       </div>
 
-      <p className="text-center text-quest-muted mt-3" style={{ fontSize: 10 }}>
-        Tap a player to view their explored map
+      <p className="text-center text-[9px] text-white/10 tracking-widest uppercase py-6">
+        Tap a player to view their map
       </p>
     </div>
   );
