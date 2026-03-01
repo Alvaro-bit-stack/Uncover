@@ -12,6 +12,111 @@ const STORAGE_KEY = "walkmap-state";
 const AVATAR_KEY = "walkmap-avatar";
 const OSRM_BASE = "https://router.project-osrm.org/route/v1/foot";
 const OSRM_NEAREST = "https://router.project-osrm.org/nearest/v1/foot";
+const ACHIEVEMENTS_KEY = "walkmap-achievements";
+const EXPLORE_HIT_RADIUS_M = 30;
+
+interface Zone {
+  id: string;
+  name: string;
+  emoji: string;
+  south: number;
+  north: number;
+  west: number;
+  east: number;
+  gridSpacing: number;
+  requiredPct: number;
+}
+
+const ZONES: Zone[] = [
+  {
+    id: "stevens",
+    name: "Stevens Institute of Technology",
+    emoji: "\u{1F393}",
+    south: 40.7430, north: 40.7468,
+    west: -74.0265, east: -74.0225,
+    gridSpacing: 20,
+    requiredPct: 0.6,
+  },
+  {
+    id: "sinatra-park",
+    name: "Sinatra Park",
+    emoji: "\u{1F3B5}",
+    south: 40.7365, north: 40.7395,
+    west: -74.0245, east: -74.0220,
+    gridSpacing: 15,
+    requiredPct: 0.5,
+  },
+  {
+    id: "elysian-park",
+    name: "Elysian Park",
+    emoji: "\u{1F333}",
+    south: 40.7490, north: 40.7520,
+    west: -74.0255, east: -74.0225,
+    gridSpacing: 15,
+    requiredPct: 0.5,
+  },
+  {
+    id: "hoboken-waterfront",
+    name: "Hoboken Waterfront",
+    emoji: "\u{1F30A}",
+    south: 40.7350, north: 40.7480,
+    west: -74.0250, east: -74.0215,
+    gridSpacing: 25,
+    requiredPct: 0.5,
+  },
+  {
+    id: "hoboken",
+    name: "City of Hoboken",
+    emoji: "\u{1F3D9}\uFE0F",
+    south: 40.7340, north: 40.7530,
+    west: -74.0380, east: -74.0195,
+    gridSpacing: 40,
+    requiredPct: 0.4,
+  },
+];
+
+function buildZoneCheckpoints(zone: Zone): { lat: number; lng: number }[] {
+  const pts: { lat: number; lng: number }[] = [];
+  const dLat = zone.gridSpacing * DEG_PER_M_LAT;
+  const dLng = zone.gridSpacing * degPerMLng((zone.south + zone.north) / 2);
+  for (let lat = zone.south; lat <= zone.north; lat += dLat) {
+    for (let lng = zone.west; lng <= zone.east; lng += dLng) {
+      pts.push({ lat, lng });
+    }
+  }
+  return pts;
+}
+
+function playAchievementSound() {
+  try {
+    const ctx = new AudioContext();
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.15 + 0.4);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.15);
+      osc.stop(ctx.currentTime + i * 0.15 + 0.4);
+    });
+    setTimeout(() => ctx.close(), 2000);
+  } catch {}
+}
+
+function loadAchievements(): Set<string> {
+  try {
+    const raw = localStorage.getItem(ACHIEVEMENTS_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch { return new Set(); }
+}
+
+function saveAchievements(set: Set<string>) {
+  try { localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify([...set])); } catch {}
+}
+
 interface SavedState {
   exploredPoints: { lat: number; lng: number }[];
   simPos: { lat: number; lng: number };
@@ -73,6 +178,8 @@ export default function WalkMap() {
   const exploredPointsRef = useRef<{ lat: number; lng: number }[]>([]);
   const rafRef = useRef<number>(0);
   const movingRef = useRef(false);
+  const achievedRef = useRef<Set<string>>(new Set());
+  const zoneCheckpointsRef = useRef<Map<string, { lat: number; lng: number }[]>>(new Map());
 
   const [ready, setReady] = useState(false);
   const [coordLabel, setCoordLabel] = useState("");
@@ -81,7 +188,9 @@ export default function WalkMap() {
   const [compassDeg, setCompassDeg] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [tilesExplored, setTilesExplored] = useState(0);
+  const [achievement, setAchievement] = useState<{ emoji: string; name: string } | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const achievementTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -137,16 +246,50 @@ export default function WalkMap() {
     });
   }
 
+  function checkZoneAchievements() {
+    const explored = exploredPointsRef.current;
+
+    for (const zone of ZONES) {
+      if (achievedRef.current.has(zone.id)) continue;
+
+      let checkpoints = zoneCheckpointsRef.current.get(zone.id);
+      if (!checkpoints) {
+        checkpoints = buildZoneCheckpoints(zone);
+        zoneCheckpointsRef.current.set(zone.id, checkpoints);
+      }
+
+      let hits = 0;
+      for (const cp of checkpoints) {
+        for (const ep of explored) {
+          if (haversine(cp.lat, cp.lng, ep.lat, ep.lng) < EXPLORE_HIT_RADIUS_M) {
+            hits++;
+            break;
+          }
+        }
+      }
+
+      const pct = checkpoints.length > 0 ? hits / checkpoints.length : 0;
+      if (pct >= zone.requiredPct) {
+        achievedRef.current.add(zone.id);
+        saveAchievements(achievedRef.current);
+        playAchievementSound();
+        setAchievement({ emoji: zone.emoji, name: zone.name });
+        if (achievementTimerRef.current) clearTimeout(achievementTimerRef.current);
+        achievementTimerRef.current = setTimeout(() => setAchievement(null), 5000);
+      }
+    }
+  }
+
   function addExploredPoint(lat: number, lng: number) {
-    const last = exploredPointsRef.current[exploredPointsRef.current.length - 1];
-    if (last) {
-      const d = haversine(last.lat, last.lng, lat, lng);
-      if (d < 5) return;
+    const minNewDist = 15;
+    for (const ep of exploredPointsRef.current) {
+      if (haversine(ep.lat, ep.lng, lat, lng) < minNewDist) return;
     }
     exploredPointsRef.current.push({ lat, lng });
     setTilesExplored(exploredPointsRef.current.length);
     persistState();
     scheduleRedraw();
+    checkZoneAchievements();
   }
 
   function moveMarkerTo(lat: number, lng: number) {
@@ -294,10 +437,8 @@ export default function WalkMap() {
       }).addTo(map);
 
       trailRef.current = Leaf.polyline([], {
-        color: "rgba(255,77,109,0.7)",
-        weight: 4,
-        lineCap: "round",
-        lineJoin: "round",
+        color: "transparent",
+        weight: 0,
         interactive: false,
       }).addTo(map);
 
@@ -336,6 +477,7 @@ export default function WalkMap() {
       mapRef.current = map;
       simPosRef.current = startPos;
       lastPosRef.current = startPos;
+      achievedRef.current = loadAchievements();
 
       if (saved) {
         exploredPointsRef.current = saved.exploredPoints;
@@ -364,6 +506,7 @@ export default function WalkMap() {
     return () => {
       cancelled = true;
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (achievementTimerRef.current) clearTimeout(achievementTimerRef.current);
       cancelAnimationFrame(rafRef.current);
       if (mapRef.current) {
         mapRef.current.remove();
@@ -455,6 +598,15 @@ export default function WalkMap() {
           </div>
         </>
       )}
+
+      {/* Achievement banner */}
+      <div className={`wm-achievement ${achievement ? "show" : ""}`}>
+        <div className="wm-achievement-emoji">{achievement?.emoji}</div>
+        <div className="wm-achievement-text">
+          <div className="wm-achievement-title">Area Discovered!</div>
+          <div className="wm-achievement-name">{achievement?.name}</div>
+        </div>
+      </div>
 
       <div className={`wm-toast ${toast ? "show" : ""}`}>{toast}</div>
     </div>
